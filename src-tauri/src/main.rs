@@ -24,8 +24,8 @@ fn main() {
     .setup(|app| {
       let _win = WindowBuilder::new(app, "main", WindowUrl::default())
         .title("RemindMeAgain")
-        .inner_size(800.0, 550.0)
-        .min_inner_size(400.0, 200.0)
+        .inner_size(400.0, 550.0)
+        .min_inner_size(300.0, 200.0)
         .transparent(true)
         .build()
         .expect("Unable to create window");

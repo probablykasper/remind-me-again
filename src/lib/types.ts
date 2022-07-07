@@ -3,4 +3,5 @@ export type Group = {
   description: string
   enabled: boolean
   id: number
+  nextDate: Date | null
 }

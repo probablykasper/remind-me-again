@@ -11,12 +11,7 @@
   "tauri": {
     "bundle": {
       "active": true,
-      "targets": [
-        "dmg",
-        "deb",
-        "appimage",
-        "msi"
-      ],
+      "targets": ["dmg", "deb", "appimage", "msi"],
       "identifier": "com.example.tauri-template",
       "icon": [
         "icons/32x32.png",
@@ -57,6 +52,7 @@
     },
     "security": {
       "csp": null
-    }
+    },
+    "macOSPrivateApi": true
   }
 }

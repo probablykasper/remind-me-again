@@ -3,5 +3,6 @@ export type Group = {
   description: string
   enabled: boolean
   id: number
+  repeat: 'never' | 'daily'
   nextDate: Date | null
 }

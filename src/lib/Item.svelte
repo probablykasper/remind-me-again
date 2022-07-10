@@ -1,57 +1,83 @@
 <script lang="ts">
-  import { onMount } from 'svelte'
+  import { onMount, tick } from 'svelte'
   import type { Group } from './types'
-  import { DateInput } from 'date-picker-svelte'
-  import { slide } from 'svelte/transition'
-  import { cubicOut } from 'svelte/easing'
   import Switch from './Switch.svelte'
   import ClickOutside from 'svelte-click-outside'
-  import { checkShortcut } from './helpers'
+  import { checkShortcut, invisibleCursorFix } from './helpers'
+  import Edit from './Edit.svelte'
 
   export let group: Group
+  export let onDelete: () => void
   let editMode = false
 
-  let card: HTMLButtonElement
+  let card: HTMLElement
   let titleInput: HTMLInputElement
   let textarea: HTMLTextAreaElement
   onMount(resize)
   function resize() {
-    textarea.style.height = ''
-    textarea.style.height = textarea.scrollHeight + 'px'
+    if (textarea) {
+      textarea.style.height = ''
+      textarea.style.height = textarea.scrollHeight + 'px'
+    }
   }
   function onInput() {
     resize()
   }
 
   function onClickOutside() {
-    editMode = false
+    cancel()
   }
 
-  function keydown(e: KeyboardEvent) {
+  let originalGroup: string | null = null
+  function startEdit() {
+    if (!editMode) {
+      editMode = true
+      originalGroup = JSON.stringify(group)
+    }
+  }
+  function cancel() {
+    editMode = false
+    if (originalGroup) {
+      group = JSON.parse(originalGroup)
+      if (group.nextDate !== null) {
+        group.nextDate = new Date(group.nextDate)
+      }
+    }
+  }
+  function save() {
+    editMode = false
+    card.focus()
+  }
+
+  async function keydown(e: KeyboardEvent) {
     if (checkShortcut(e, 'Escape')) {
-      editMode = false
-      card.focus()
       e.preventDefault()
+      cancel()
+      await tick()
+      card.focus()
     }
   }
   function keydownSelf(e: KeyboardEvent) {
     if (checkShortcut(e, 'Enter')) {
-      editMode = true
+      startEdit()
       titleInput.focus()
+      e.preventDefault()
+    } else if (checkShortcut(e, 'Backspace')) {
+      onDelete()
       e.preventDefault()
     }
   }
 </script>
 
 <ClickOutside on:clickoutside={onClickOutside}>
-  <button
+  <form
+    on:submit|preventDefault={save}
     bind:this={card}
-    class="group my-3 flex w-full cursor-default items-center rounded-lg p-3.5 text-left shadow-xl outline-none transition-colors duration-150 ease-out hover:bg-[#133134] focus:ring-2 focus:ring-[#31898c]"
+    class="group my-3 flex w-full cursor-default items-center rounded-lg p-3.5 text-left shadow-xl outline-none transition-colors duration-150 ease-out focus:bg-[#133134] active:bg-[#133134]"
     class:bg-[#0E2426]={group.enabled}
-    on:click={() => {
-      editMode = true
-    }}
+    class:bg-[#133134]={editMode}
     on:keydown={keydown}
+    tabindex={editMode ? null : 0}
     on:keydown|self={keydownSelf}
     on:mousedown={(e) => {
       if (editMode) {
@@ -86,10 +112,8 @@
     </div>
     <div
       class="mr-auto flex w-full flex-col"
-      on:click={(e) => {
-        if (editMode) {
-          e.preventDefault()
-        }
+      on:click|preventDefault={() => {
+        editMode = true
       }}
     >
       <input
@@ -97,8 +121,10 @@
         class="w-full rounded-t-sm border-none bg-white bg-opacity-0 px-2 py-1 text-sm focus:ring-0"
         class:bg-opacity-10={editMode}
         tabindex={editMode ? 0 : -1}
+        placeholder="Title"
         type="text"
         bind:value={group.title}
+        use:invisibleCursorFix
       />
       <textarea
         bind:this={textarea}
@@ -106,44 +132,25 @@
         class="w-full resize-none rounded-b-sm border-none bg-white bg-opacity-0 px-2 py-1 text-xs text-white text-opacity-75 focus:ring-0"
         class:bg-opacity-10={editMode}
         tabindex={editMode ? 0 : -1}
+        placeholder="Description"
         type="text"
         bind:value={group.description}
         on:input={onInput}
       />
       {#if editMode}
-        <div class="mt-2" transition:slide={{ easing: cubicOut }}>
-          <DateInput
-            bind:value={group.nextDate}
-            closeOnSelection={true}
-            --date-picker-background="#031212"
-            --date-picker-foreground="#f7f7f7"
-            --date-input-width="100%"
-            --date-picker-highlight-border="hsl(183, 98%, 49%)"
-            --date-picker-highlight-shadow="hsla(183, 98%, 49%, 50%)"
-            --date-picker-selected-color="hsl(183, 100%, 85%)"
-            --date-picker-selected-background="hsla(183, 98%, 49%, 20%)"
-          />
-        </div>
-        <button
-          class="mt-2 cursor-default rounded-sm bg-[#31898c] px-2 py-1 text-sm"
-          transition:slide={{ easing: cubicOut }}
-          on:click={(e) => {
-            editMode = false
-            e.stopPropagation()
-          }}>Save</button
-        >
+        <Edit bind:group onSave={save} onCancel={cancel} />
       {/if}
     </div>
     <div on:click|preventDefault|stopPropagation>
       <Switch class="ml-3.5" bind:value={group.enabled} />
     </div>
-  </button>
+  </form>
 </ClickOutside>
 
 <style lang="sass">
   // fix tailwind styles
   :global(.date-time-field input)
-    background-color: hsla(0, 0, 100, 0.1)
+    background-color: hsla(0, 0%, 100%, 0.1)
     border: none
     font-size: 12px
   :global(.date-time-picker select)

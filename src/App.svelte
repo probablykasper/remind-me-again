@@ -1,13 +1,58 @@
 <script lang="ts">
+  import { cubicOut } from 'svelte/easing'
+  import { crossfade } from 'svelte/transition'
+  import { flip } from 'svelte/animate'
   import './app.css'
   import Item from './lib/Item.svelte'
+  import New from './lib/New.svelte'
   import type { Group } from './lib/types'
 
+  let lastId = 0
+  function newId() {
+    return lastId++
+  }
   let groups: Group[] = [
-    { title: 'Rabbit foot water', description: 'Yo', enabled: true, id: 1, nextDate: new Date() },
-    { title: 'Rabbit foot water', description: 'Yo', enabled: true, id: 0, nextDate: new Date() },
-    { title: 'Rabbit foot water', description: 'Yo', enabled: true, id: 2, nextDate: new Date() },
+    {
+      title: 'Rabbit stuff',
+      description: 'Yo',
+      enabled: true,
+      id: newId(),
+      nextDate: new Date(),
+      repeat: 'never',
+    },
+    {
+      title: 'Rabbit stuff',
+      description: 'Yo',
+      enabled: true,
+      id: newId(),
+      nextDate: new Date(),
+      repeat: 'never',
+    },
+    {
+      title: 'Rabbit stuff',
+      description: 'Yo',
+      enabled: true,
+      id: newId(),
+      nextDate: new Date(),
+      repeat: 'never',
+    },
   ]
+
+  const [send, receive] = crossfade({
+    duration: (d) => Math.sqrt(d * 200),
+    fallback(node) {
+      const style = getComputedStyle(node)
+      const transform = style.transform === 'none' ? '' : style.transform
+
+      return {
+        easing: cubicOut,
+        css: (t) => `
+  				transform: ${transform} scale(${t});
+  				opacity: ${t}
+  			`,
+      }
+    },
+  })
 </script>
 
 <div class="flex min-h-screen w-full flex-col overflow-y-scroll px-4 py-2">
@@ -15,8 +60,25 @@
     Reminders
   </h1>
   <div class="relative select-none outline-none">
+    <New
+      onCreate={(group) => {
+        group.id = newId()
+        groups = [...groups, group]
+      }}
+    />
     {#each groups as group (group.id)}
-      <Item bind:group />
+      <div
+        in:receive={{ key: group.id, duration: 400 }}
+        out:send={{ key: group.id, duration: 400 }}
+        animate:flip={{ duration: 400 }}
+      >
+        <Item
+          bind:group
+          onDelete={() => {
+            groups = groups.filter((g) => g.id !== group.id)
+          }}
+        />
+      </div>
     {/each}
   </div>
 </div>

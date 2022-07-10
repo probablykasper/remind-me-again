@@ -32,3 +32,23 @@ export function checkShortcut(e: KeyboardEvent, key: string, options: ShortcutOp
   if (e.key.toUpperCase() !== key.toUpperCase()) return false
   return checkModifiers(e, options)
 }
+
+/**
+ * In Safari input elements, when you type something, delete it, tab and then shift+tab, the cursor is invisible. This fixes that
+ */
+export function invisibleCursorFix(node: HTMLInputElement) {
+  const handleFocus = (e: FocusEvent) => {
+    if (e.target instanceof HTMLInputElement) {
+      // eslint-disable-next-line no-self-assign
+      const value = e.target.value
+      e.target.value = 'x'
+      e.target.value = value
+    }
+  }
+  node.addEventListener('focus', handleFocus)
+  return {
+    destroy() {
+      node.removeEventListener('focus', handleFocus)
+    },
+  }
+}

@@ -36,7 +36,7 @@
 </script>
 
 <form
-  class="flex w-full flex-col rounded bg-white bg-opacity-10"
+  class="mb-3 flex w-full flex-col rounded bg-white bg-opacity-10"
   class:p-3.5={editMode}
   on:submit|preventDefault
 >

@@ -73,7 +73,7 @@
   <form
     on:submit|preventDefault={save}
     bind:this={card}
-    class="group my-3 flex w-full cursor-default items-center rounded-lg p-3.5 text-left shadow-xl outline-none transition-colors duration-150 ease-out focus:bg-[#133134] active:bg-[#133134]"
+    class="group mb-3 flex w-full cursor-default items-center rounded-lg p-3.5 text-left shadow-xl outline-none transition-colors duration-150 ease-out focus:bg-[#133134] active:bg-[#133134]"
     class:bg-[#0E2426]={group.enabled}
     class:bg-[#133134]={editMode}
     on:keydown={keydown}

@@ -39,8 +39,8 @@
     editMode = false
     if (originalGroup) {
       group = JSON.parse(originalGroup)
-      if (group.nextDate !== null) {
-        group.nextDate = new Date(group.nextDate)
+      if (group.next_date !== null) {
+        group.next_date = new Date(group.next_date).getTime()
       }
     }
   }
@@ -110,15 +110,11 @@
         >
       {/if}
     </div>
-    <div
-      class="mr-auto flex w-full flex-col"
-      on:click|preventDefault={() => {
-        editMode = true
-      }}
-    >
+    <div class="mr-auto flex w-full flex-col" on:mousedown={startEdit}>
       <input
         bind:this={titleInput}
-        class="w-full rounded-t-sm border-none bg-white bg-opacity-0 px-2 py-1 text-sm focus:ring-0"
+        class="w-full rounded-t-sm border-none bg-white px-2 py-1 text-sm focus:ring-0"
+        class:bg-opacity-0={!editMode}
         class:bg-opacity-10={editMode}
         tabindex={editMode ? 0 : -1}
         placeholder="Title"
@@ -129,7 +125,8 @@
       <textarea
         bind:this={textarea}
         rows="1"
-        class="w-full resize-none rounded-b-sm border-none bg-white bg-opacity-0 px-2 py-1 text-xs text-white text-opacity-75 focus:ring-0"
+        class="w-full resize-none rounded-b-sm border-none bg-white px-2 py-1 text-xs text-white text-opacity-75 focus:ring-0"
+        class:bg-opacity-0={!editMode}
         class:bg-opacity-10={editMode}
         tabindex={editMode ? 0 : -1}
         placeholder="Description"

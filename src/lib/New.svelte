@@ -28,7 +28,7 @@
       enabled: true,
       title: '',
       description: '',
-      nextDate: new Date(),
+      next_date: Date.now(),
       repeat: 'never',
     }
   }
@@ -41,7 +41,8 @@
   on:submit|preventDefault
 >
   <input
-    class="w-full rounded-t-sm border-none bg-white bg-opacity-0 px-2 py-1 text-sm focus:ring-0"
+    class="w-full rounded-t-sm border-none bg-white px-2 py-1 text-sm focus:ring-0"
+    class:bg-opacity-0={!editMode}
     class:bg-opacity-10={editMode}
     placeholder={editMode ? 'Title' : 'New reminder...'}
     type="text"
@@ -53,7 +54,8 @@
     <textarea
       bind:this={textarea}
       rows="1"
-      class="w-full resize-none rounded-b-sm border-none bg-white bg-opacity-0 px-2 py-1 text-xs text-white text-opacity-75 focus:ring-0"
+      class="w-full resize-none rounded-b-sm border-none bg-white px-2 py-1 text-xs text-white text-opacity-75 focus:ring-0"
+      class:bg-opacity-0={!editMode}
       class:bg-opacity-10={editMode}
       placeholder="Description"
       tabindex={editMode ? 0 : -1}

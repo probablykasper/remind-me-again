@@ -5,38 +5,14 @@
   import './app.css'
   import Item from './lib/Item.svelte'
   import New from './lib/New.svelte'
+  import { runCmd } from './lib/helpers'
   import type { Group } from './lib/types'
 
-  let lastId = 0
-  function newId() {
-    return lastId++
-  }
-  let groups: Group[] = [
-    {
-      title: 'Rabbit stuff',
-      description: 'Yo',
-      enabled: true,
-      id: newId(),
-      nextDate: new Date(),
-      repeat: 'never',
-    },
-    {
-      title: 'Rabbit stuff',
-      description: 'Yo',
-      enabled: true,
-      id: newId(),
-      nextDate: new Date(),
-      repeat: 'never',
-    },
-    {
-      title: 'Rabbit stuff',
-      description: 'Yo',
-      enabled: true,
-      id: newId(),
-      nextDate: new Date(),
-      repeat: 'never',
-    },
-  ]
+  let groups: Group[] = []
+  runCmd<Group[]>('get_groups').then((g) => {
+    groups = g
+    console.log(groups)
+  })
 
   const [send, receive] = crossfade({
     fallback(node) {
@@ -59,28 +35,31 @@
   <h1 class="mb-2 cursor-default select-none text-center text-2xl font-normal text-white">
     Reminders
   </h1>
-  <div class="relative select-none outline-none">
-    <New
-      onCreate={(group) => {
-        group.id = newId()
-        groups = [...groups, group]
-      }}
-    />
-    {#each groups as group (group.id)}
-      <div
-        in:receive={{ key: group.id, duration: 400 }}
-        out:send={{ key: group.id, duration: 400 }}
-        animate:flip={{ duration: 400 }}
-      >
-        <Item
-          bind:group
-          onDelete={() => {
-            groups = groups.filter((g) => g.id !== group.id)
-          }}
-        />
-      </div>
-    {/each}
-  </div>
+  {#if groups}
+    <div class="relative select-none outline-none">
+      <New
+        onCreate={(group) => {
+          runCmd('new_group', { group: group }).then((g) => {
+            groups = g
+          })
+        }}
+      />
+      {#each groups as group (group.id)}
+        <div
+          in:receive={{ key: group.id, duration: 400 }}
+          out:send={{ key: group.id, duration: 400 }}
+          animate:flip={{ duration: 400 }}
+        >
+          <Item
+            bind:group
+            onDelete={() => {
+              groups = groups.filter((g) => g.id !== group.id)
+            }}
+          />
+        </div>
+      {/each}
+    </div>
+  {/if}
 </div>
 
 <style lang="sass">

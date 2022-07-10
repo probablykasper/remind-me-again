@@ -4,19 +4,21 @@
   import type { Group } from './types'
 
   export let group: Group
+
   export let onSave: () => void
   export let onCancel = () => {
     /* noop */
   }
+
+  let nextDate = group.next_date === null ? null : new Date(group.next_date)
+  $: group.next_date = nextDate === null ? null : nextDate.getTime()
 </script>
 
-<!-- <div class="mt-2" transition:slide={{ easing: cubicOut }}> -->
 <div in:slide={{ duration: 200 }} out:slide={{ duration: 300 }}>
-  <!-- <div transition:fly={{ y: -10, delay: 100 }}> -->
   <div in:fly={{ duration: 300, y: -20 }} out:fly={{ duration: 200, y: -20 }}>
     <div class="mt-2">
       <DateInput
-        bind:value={group.nextDate}
+        bind:value={nextDate}
         closeOnSelection={true}
         --date-picker-background="#031212"
         --date-picker-foreground="#f7f7f7"
@@ -27,6 +29,14 @@
         --date-picker-selected-background="hsla(183, 98%, 49%, 20%)"
       />
     </div>
+    <span class="text-sm">Repeat</span>
+    <select
+      class="mt-2 rounded border-none bg-white bg-opacity-10 py-1 pl-3 pr-8 text-sm outline-none focus:focus:ring-2 focus:ring-[#02ebf7]"
+      bind:value={group.repeat}
+    >
+      <option value={'never'}>Never</option>
+      <option value={'daily'}>Daily</option>
+    </select>
     <div class="flex w-full">
       <button
         type="button"

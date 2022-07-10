@@ -4,5 +4,5 @@ export type Group = {
   enabled: boolean
   id: number
   repeat: 'never' | 'daily'
-  nextDate: Date | null
+  next_date: number | null
 }

@@ -3,15 +3,36 @@
   windows_subsystem = "windows"
 )]
 
-use tauri::api::shell;
+use std::sync::Mutex;
+use std::thread;
+
+use notifications::{Data, Group, Instance};
+use tauri::api::{dialog, shell};
 use tauri::{
-  AboutMetadata, CustomMenuItem, Manager, Menu, MenuEntry, MenuItem, Submenu, WindowBuilder,
-  WindowUrl,
+  command, AboutMetadata, CustomMenuItem, Manager, Menu, MenuEntry, MenuItem, Submenu, Window,
+  WindowBuilder, WindowUrl,
 };
+use tokio;
 
-mod cmd;
+#[macro_export]
+macro_rules! throw {
+  ($($arg:tt)*) => {{
+    return Err(format!($($arg)*))
+  }};
+}
 
-fn main() {
+#[command]
+fn error_popup(msg: String, win: Window) {
+  eprintln!("Error: {}", msg);
+  thread::spawn(move || {
+    dialog::message(Some(&win), "Error", msg);
+  });
+}
+
+mod notifications;
+
+#[tokio::main]
+async fn main() {
   let ctx = tauri::generate_context!();
 
   // macOS "App Nap" periodically pauses our app when it's in the background.
@@ -19,8 +40,35 @@ fn main() {
   #[cfg(target_os = "macos")]
   macos_app_nap::prevent();
 
+  tauri::async_runtime::set(tokio::runtime::Handle::current());
+
+  let groups = vec![
+    Group {
+      title: "Rabbit stuff".to_string(),
+      description: "Yo".to_string(),
+      enabled: true,
+      id: 0,
+      next_date: Some(0),
+      repeat: notifications::Repeat::Daily,
+    },
+    Group {
+      title: "Things".to_string(),
+      description: "yea".to_string(),
+      enabled: true,
+      id: 1,
+      next_date: Some(0),
+      repeat: notifications::Repeat::Never,
+    },
+  ];
+  let instance = Instance::init(groups).await;
+
   tauri::Builder::default()
-    .invoke_handler(tauri::generate_handler![])
+    .invoke_handler(tauri::generate_handler![
+      error_popup,
+      notifications::get_groups,
+      notifications::new_group,
+    ])
+    .manage(Data(Mutex::new(instance)))
     .setup(|app| {
       let _win = WindowBuilder::new(app, "main", WindowUrl::default())
         .title("RemindMeAgain")

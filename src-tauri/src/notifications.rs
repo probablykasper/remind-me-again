@@ -1,3 +1,4 @@
+use crate::data::{to_json, AppPaths, RemindersFile};
 use async_cron_scheduler::{Job, JobId, Scheduler};
 use chrono::offset::Local;
 use nanoid::nanoid;
@@ -55,19 +56,23 @@ impl Group {
 }
 
 pub struct Instance {
-  pub groups: Vec<Group>,
+  pub file: RemindersFile,
   pub scheduler: Option<Scheduler<Local>>,
+  pub app_paths: AppPaths,
   pub bundle_identifier: String,
 }
 impl Instance {
+  pub fn save(&self) -> Result<(), String> {
+    self.file.save(&self.app_paths)
+  }
   pub fn add_group(&mut self, mut group: Group) -> Result<(), String> {
     match &mut self.scheduler {
       Some(scheduler) => {
         group.create_job(scheduler, self.bundle_identifier.clone())?;
-        self.groups.push(group);
+        self.file.groups.push(group);
       }
       None => {
-        self.groups.push(group);
+        self.file.groups.push(group);
         self.start();
       }
     };
@@ -80,7 +85,7 @@ impl Instance {
     ];
     for _ in 0..100 {
       let id = nanoid!(7, &alphabet);
-      let exists = self.groups.iter().any(|g| g.id == id);
+      let exists = self.file.groups.iter().any(|g| g.id == id);
       if !exists {
         return id;
       }
@@ -91,24 +96,23 @@ impl Instance {
     let scheduler = match &mut self.scheduler {
       Some(scheduler) => scheduler,
       None => {
-        self.groups.remove(index);
+        self.file.groups.remove(index);
         return;
       }
     };
-    match self.groups[index].job_id {
+    match self.file.groups[index].job_id {
       Some(job_id) => scheduler.remove(job_id),
       None => {}
     };
-    self.groups.remove(index);
+    self.file.groups.remove(index);
   }
   pub fn start(&mut self) {
-    let groups = self.groups.clone();
     let bundle_identifier = self.bundle_identifier.clone();
 
     let (mut scheduler, sched_service) = Scheduler::<Local>::launch(tokio::time::sleep);
 
     let mut errors = Vec::new();
-    for mut group in groups {
+    for group in &mut self.file.groups {
       match group.create_job(&mut scheduler, bundle_identifier.clone()) {
         Ok(_) => {}
         Err(e) => errors.push(e),
@@ -128,17 +132,10 @@ impl Instance {
 
 pub struct Data(pub Mutex<Instance>);
 
-pub fn to_json<T: Serialize>(data: &T) -> Result<Value, String> {
-  match serde_json::to_value(data) {
-    Ok(v) => Ok(v),
-    Err(e) => throw!("Error serializing {}", e),
-  }
-}
-
 #[command]
 pub async fn get_groups(data: State<'_, Data>) -> Result<Value, String> {
   let data = data.0.lock().unwrap();
-  to_json(&data.groups)
+  to_json(&data.file.groups)
 }
 
 #[command]
@@ -146,12 +143,14 @@ pub async fn new_group(mut group: Group, data: State<'_, Data>) -> Result<Value,
   let mut data = data.0.lock().unwrap();
   group.id = data.generate_id();
   data.add_group(group)?;
-  to_json(&data.groups)
+  data.save()?;
+  to_json(&data.file.groups)
 }
 
 #[command]
 pub async fn delete_group(index: usize, data: State<'_, Data>) -> Result<Value, String> {
   let mut data = data.0.lock().unwrap();
   data.delete_group(index);
-  to_json(&data.groups)
+  data.save()?;
+  to_json(&data.file.groups)
 }

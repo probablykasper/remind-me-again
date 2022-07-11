@@ -7,7 +7,7 @@ use cocoa::appkit::NSApplication;
 use cocoa::appkit::NSApplicationActivationPolicy::{
   NSApplicationActivationPolicyAccessory, NSApplicationActivationPolicyRegular,
 };
-use notifications::{Data, Group, Instance};
+use notifications::{Data, Instance};
 use std::sync::Mutex;
 use std::thread;
 use tauri::api::{dialog, shell};
@@ -32,6 +32,17 @@ fn error_popup(msg: String, win: Window) {
   });
 }
 
+fn error_popup_main_thread(msg: impl AsRef<str>) {
+  let msg = msg.as_ref().to_string();
+  let builder = rfd::MessageDialog::new()
+    .set_title("Error")
+    .set_description(&msg)
+    .set_buttons(rfd::MessageButtons::Ok)
+    .set_level(rfd::MessageLevel::Info);
+  builder.show();
+}
+
+mod data;
 mod notifications;
 
 fn main() {
@@ -42,18 +53,17 @@ fn main() {
   #[cfg(target_os = "macos")]
   macos_app_nap::prevent();
 
-  // let groups = Vec::new();
-  let groups = vec![Group {
-    title: "Test".to_string(),
-    description: "x".to_string(),
-    enabled: true,
-    id: "0".to_string(),
-    job_id: None,
-    cron: "*/10 * * * * *".to_string(),
-    next_date: None,
-  }];
+  let app_paths = data::AppPaths::from_tauri_config(ctx.config());
+  let reminders_file = match data::RemindersFile::load(&app_paths) {
+    Ok(groups) => groups,
+    Err(e) => {
+      error_popup_main_thread(e);
+      data::RemindersFile { groups: Vec::new() }
+    }
+  };
   let instance = Instance {
-    groups,
+    file: reminders_file,
+    app_paths,
     scheduler: None,
     bundle_identifier: ctx.config().tauri.bundle.identifier.clone(),
   };

@@ -91,6 +91,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "atomicwrites"
+version = "0.3.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "eb8f2cd6962fa53c0e2a9d3f97eaa7dbd1e3cbbeeb4745403515b42ae07b3ff6"
+dependencies = [
+ "tempfile",
+ "winapi",
+]
+
+[[package]]
 name = "autocfg"
 version = "1.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2272,6 +2282,7 @@ name = "remind-me-again"
 version = "0.1.0"
 dependencies = [
  "async-cron-scheduler",
+ "atomicwrites",
  "chrono",
  "cocoa",
  "cron",
@@ -2280,6 +2291,7 @@ dependencies = [
  "nanoid",
  "objc",
  "once_cell",
+ "rfd",
  "serde",
  "serde_json",
  "tao",

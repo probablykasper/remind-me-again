@@ -2,7 +2,7 @@
   "private": true,
   "scripts": {
     "tauri": "tauri",
-    "dev": "tauri dev",
+    "dev": "DEVELOPMENT=1 tauri dev",
     "dev:web": "vite",
     "build": "tauri build",
     "build:web": "vite build",

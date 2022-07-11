@@ -3,15 +3,19 @@
   windows_subsystem = "windows"
 )]
 
+use cocoa::appkit::NSApplication;
+use cocoa::appkit::NSApplicationActivationPolicy::{
+  NSApplicationActivationPolicyAccessory, NSApplicationActivationPolicyRegular,
+};
+use notifications::{Data, Instance};
 use std::sync::Mutex;
 use std::thread;
-
-use notifications::{Data, Instance};
 use tauri::api::{dialog, shell};
 use tauri::{
-  command, AboutMetadata, CustomMenuItem, Manager, Menu, MenuEntry, MenuItem, Submenu, Window,
-  WindowBuilder, WindowUrl,
+  command, AboutMetadata, AppHandle, CustomMenuItem, Manager, Menu, MenuEntry, MenuItem, Submenu,
+  Window, WindowBuilder, WindowUrl,
 };
+use tauri::{SystemTray, SystemTrayEvent};
 use tokio;
 
 #[macro_export]
@@ -46,10 +50,11 @@ async fn main() {
   let mut instance = Instance {
     scheduler: None,
     groups,
+    bundle_identifier: ctx.config().tauri.bundle.identifier.clone(),
   };
   let instance_result = instance.start();
 
-  tauri::Builder::default()
+  let app = tauri::Builder::default()
     .invoke_handler(tauri::generate_handler![
       error_popup,
       notifications::get_groups,
@@ -59,63 +64,13 @@ async fn main() {
     .manage(Data(Mutex::new(instance)))
     .plugin(tauri_plugin_window_state::Builder::default().build())
     .setup(|app| {
-      let _win = WindowBuilder::new(app, "main", WindowUrl::default())
-        .title("Remind Me Again")
-        .inner_size(400.0, 550.0)
-        .min_inner_size(400.0, 200.0)
-        .transparent(true)
-        .build()
-        .expect("Unable to create window");
+      let win = create_window(&app.app_handle());
 
       match instance_result {
         Ok(_) => {}
-        Err(e) => error_popup(e, _win.clone()),
+        Err(e) => error_popup(e, win.clone()),
       }
 
-      #[cfg(target_os = "macos")]
-      {
-        use cocoa::appkit::NSWindow;
-        let nsw = _win.ns_window().unwrap() as cocoa::base::id;
-        unsafe {
-          // manual implementation for now (PR https://github.com/tauri-apps/tauri/pull/3965)
-          {
-            nsw.setTitlebarAppearsTransparent_(cocoa::base::YES);
-
-            // tauri enables fullsizecontentview by default, so disable it
-            let mut style_mask = nsw.styleMask();
-            style_mask.set(
-              cocoa::appkit::NSWindowStyleMask::NSFullSizeContentViewWindowMask,
-              false,
-            );
-            nsw.setStyleMask_(style_mask);
-          }
-
-          nsw.setTitleVisibility_(cocoa::appkit::NSWindowTitleVisibility::NSWindowTitleHidden);
-
-          // set window to always be dark mode
-          use cocoa::appkit::NSAppearanceNameVibrantDark;
-          use objc::*;
-          let appearance: cocoa::base::id = msg_send![
-            class!(NSAppearance),
-            appearanceNamed: NSAppearanceNameVibrantDark
-          ];
-          let () = msg_send![nsw, setAppearance: appearance];
-
-          // set window background color
-          let bg_color = cocoa::appkit::NSColor::colorWithRed_green_blue_alpha_(
-            cocoa::base::nil,
-            // 34.0 / 255.0 * 0.5,
-            // 38.0 / 255.0 * 0.5,
-            // 45.5 / 255.0 * 0.5,
-            // 1.0,
-            8.0 / 255.0,
-            9.0 / 255.0,
-            13.0 / 255.0,
-            1.0,
-          );
-          nsw.setBackgroundColor_(bg_color);
-        }
-      }
       Ok(())
     })
     .menu(Menu::with_items([
@@ -177,6 +132,145 @@ async fn main() {
         _ => {}
       }
     })
-    .run(ctx)
+    .system_tray(SystemTray::new())
+    .on_system_tray_event(|app, event| match event {
+      SystemTrayEvent::LeftClick { .. } => {
+        match app.get_window("main") {
+          Some(window) => {
+            // window.hide().unwrap();
+            window.close().unwrap();
+            hide_app();
+            set_activation_policy_runtime(NSApplicationActivationPolicyAccessory);
+          }
+          None => {
+            set_activation_policy_runtime(NSApplicationActivationPolicyRegular);
+            // window.show().unwrap();
+            let window = create_window(&app.app_handle());
+            std::thread::sleep(std::time::Duration::from_millis(5));
+            window.set_focus().unwrap();
+          }
+        }
+        // let window = app.get_window("main");
+        // let is_visible = match window {
+        //   Some(window) => window.is_visible(),
+        //   None => false,
+        // };
+        // let is_visible = window.is_visible().unwrap();
+        // println!("{:?}", is_visible);
+        // if is_visible {
+        //   // window.hide().unwrap();
+        //   window.close().unwrap();
+        //   hide_app();
+        //   set_activation_policy_runtime(NSApplicationActivationPolicyAccessory);
+        // } else {
+        //   set_activation_policy_runtime(NSApplicationActivationPolicyRegular);
+        //   // window.show().unwrap();
+        //   create_window(&app.app_handle());
+        //   std::thread::sleep(std::time::Duration::from_millis(5));
+        //   window.set_focus().unwrap();
+        // }
+      }
+      _ => {}
+    })
+    .build(ctx)
     .expect("error while running tauri application");
+
+  app.run(|app_handle, e| match e {
+    tauri::RunEvent::ExitRequested { api, .. } => {
+      api.prevent_exit();
+    }
+    tauri::RunEvent::WindowEvent { event, .. } => match event {
+      tauri::WindowEvent::CloseRequested { api, .. } => {
+        api.prevent_close();
+        app_handle.get_window("main").unwrap().close().unwrap();
+        hide_app();
+        set_activation_policy_runtime(NSApplicationActivationPolicyAccessory);
+      }
+      _ => {}
+    },
+    _ => {}
+  });
+}
+
+fn create_window(app: &AppHandle) -> Window {
+  let win = WindowBuilder::new(app, "main", WindowUrl::default())
+    .title("Remind Me Again")
+    .inner_size(400.0, 550.0)
+    .min_inner_size(400.0, 200.0)
+    .skip_taskbar(true)
+    .visible(false) // tauri_plugin_window_state reveals window
+    .transparent(true)
+    .build()
+    .expect("Unable to create window");
+
+  #[cfg(target_os = "macos")]
+  {
+    use cocoa::appkit::NSWindow;
+    let nsw = win.ns_window().unwrap() as cocoa::base::id;
+    unsafe {
+      // manual implementation for now (PR https://github.com/tauri-apps/tauri/pull/3965)
+      {
+        nsw.setTitlebarAppearsTransparent_(cocoa::base::YES);
+
+        // tauri enables fullsizecontentview by default, so disable it
+        let mut style_mask = nsw.styleMask();
+        style_mask.set(
+          cocoa::appkit::NSWindowStyleMask::NSFullSizeContentViewWindowMask,
+          false,
+        );
+        nsw.setStyleMask_(style_mask);
+      }
+
+      nsw.setTitleVisibility_(cocoa::appkit::NSWindowTitleVisibility::NSWindowTitleHidden);
+
+      // set window to always be dark mode
+      use cocoa::appkit::NSAppearanceNameVibrantDark;
+      use objc::*;
+      let appearance: cocoa::base::id = msg_send![
+        class!(NSAppearance),
+        appearanceNamed: NSAppearanceNameVibrantDark
+      ];
+      let () = msg_send![nsw, setAppearance: appearance];
+
+      // set window background color
+      let bg_color = cocoa::appkit::NSColor::colorWithRed_green_blue_alpha_(
+        cocoa::base::nil,
+        // 34.0 / 255.0 * 0.5,
+        // 38.0 / 255.0 * 0.5,
+        // 45.5 / 255.0 * 0.5,
+        // 1.0,
+        8.0 / 255.0,
+        9.0 / 255.0,
+        13.0 / 255.0,
+        1.0,
+      );
+      nsw.setBackgroundColor_(bg_color);
+    }
+  }
+  win
+}
+
+fn hide_app() {
+  #[cfg(target_os = "macos")]
+  {
+    // hide the application
+    // manual for now (PR https://github.com/tauri-apps/tauri/pull/3689)
+    use objc::*;
+    let cls = objc::runtime::Class::get("NSApplication").unwrap();
+    let app: cocoa::base::id = unsafe { msg_send![cls, sharedApplication] };
+    unsafe { msg_send![app, hide: 0] }
+  }
+}
+
+fn set_activation_policy_runtime(policy: cocoa::appkit::NSApplicationActivationPolicy) {
+  #[cfg(target_os = "macos")]
+  {
+    println!("acc");
+    use objc::*;
+    let cls = objc::runtime::Class::get("NSApplication").unwrap();
+    let app: cocoa::base::id = unsafe { msg_send![cls, sharedApplication] };
+    unsafe {
+      app.setActivationPolicy_(policy);
+    }
+  }
 }

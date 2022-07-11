@@ -74,7 +74,7 @@
         {@const selected = selectedSegments.includes(i)}
         <div
           class="px-1 hover:opacity-100"
-          class:opacity-75={!selected}
+          class:opacity-60={!selected}
           class:opacity-100={selected}
           on:click={() => selectSegment(i)}
         >

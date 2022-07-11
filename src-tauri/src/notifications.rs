@@ -4,6 +4,7 @@ use nanoid::nanoid;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::sync::Mutex;
+use tauri::api::notification::Notification;
 use tauri::{command, State};
 
 #[derive(Serialize, Deserialize)]
@@ -14,7 +15,7 @@ pub enum Repeat {
   Daily,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Clone)]
 pub struct Group {
   pub title: String,
   pub description: String,
@@ -26,27 +27,40 @@ pub struct Group {
   pub next_date: Option<u64>,
 }
 impl Group {
-  pub fn create_job(&self) -> Result<Job<Local>, String> {
-    match Job::cron(self.cron.as_str()) {
-      Ok(job) => Ok(job),
-      Err(e) => Err(e.to_string()),
+  pub fn create_job(&mut self, scheduler: &mut Scheduler<Local>, a: String) -> Result<(), String> {
+    if self.enabled {
+      let job = match Job::cron(self.cron.as_str()) {
+        Ok(job) => job,
+        Err(e) => return Err(e.to_string()),
+      };
+      let group = self.clone();
+      let job_id = scheduler.insert(job, move |_id| {
+        let result = Notification::new(&a)
+          .title(&group.title)
+          .body(&group.description)
+          .show();
+        match result {
+          Ok(_) => {}
+          Err(e) => eprintln!("Could not show notification: {}", e),
+        }
+      });
+      self.job_id = Some(job_id);
+      println!("Created job \"{}\" at {}", self.title, self.cron);
     }
+    Ok(())
   }
 }
 
 pub struct Instance {
   pub scheduler: Option<Scheduler<Local>>,
   pub groups: Vec<Group>,
+  pub bundle_identifier: String,
 }
 impl Instance {
-  pub fn add_group(&mut self, group: Group) -> Result<(), String> {
+  pub fn add_group(&mut self, mut group: Group) -> Result<(), String> {
     match &mut self.scheduler {
       Some(scheduler) => {
-        let job = group.create_job()?;
-        let _job_id = scheduler.insert(job, |id| {
-          println!("Job {:?}", id);
-        });
-        println!("Scheduled \"{}\" at {}", group.title, group.cron);
+        group.create_job(scheduler, self.bundle_identifier.clone())?;
         self.groups.push(group);
       }
       None => {
@@ -85,28 +99,21 @@ impl Instance {
     self.groups.remove(index);
   }
   pub fn start(&mut self) -> Result<(), String> {
-    let (mut scheduler, _sched_service) = Scheduler::<Local>::launch(tokio::time::sleep);
+    let (mut scheduler, sched_service) = Scheduler::<Local>::launch(tokio::time::sleep);
 
     let mut err = None;
     for group in &mut self.groups {
-      if !group.enabled {
-        continue;
-      }
-      let job = match Job::cron(group.cron.as_str()) {
-        Ok(job) => job,
+      match group.create_job(&mut scheduler, self.bundle_identifier.clone()) {
+        Ok(_) => {}
         Err(e) => {
           err = Some(e);
-          continue;
         }
       };
-      let job_id = scheduler.insert(job, |id| {
-        println!("Job {:?}", id);
-      });
-      group.job_id = Some(job_id);
-      println!("Scheduled \"{}\" at {}", group.title, group.cron);
     }
-
     self.scheduler = Some(scheduler);
+
+    tokio::spawn(sched_service);
+
     match err {
       Some(e) => Err(e.to_string()),
       None => Ok(()),

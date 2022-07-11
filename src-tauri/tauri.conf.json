@@ -42,6 +42,9 @@
         "timestampUrl": ""
       }
     },
+    "systemTray": {
+      "iconPath": "./icons/icon.png"
+    },
     "updater": {
       "active": false
     },

@@ -6,7 +6,7 @@
 use std::sync::Mutex;
 use std::thread;
 
-use notifications::{Data, Group, Instance};
+use notifications::{Data, Instance};
 use tauri::api::{dialog, shell};
 use tauri::{
   command, AboutMetadata, CustomMenuItem, Manager, Menu, MenuEntry, MenuItem, Submenu, Window,
@@ -42,24 +42,7 @@ async fn main() {
 
   tauri::async_runtime::set(tokio::runtime::Handle::current());
 
-  let groups = vec![
-    Group {
-      title: "Rabbit stuff".to_string(),
-      description: "Yo".to_string(),
-      enabled: true,
-      id: 0,
-      next_date: Some(0),
-      cron: "0 0 0 * * *".to_string(),
-    },
-    Group {
-      title: "Things".to_string(),
-      description: "yea".to_string(),
-      enabled: true,
-      id: 1,
-      next_date: Some(0),
-      cron: "0 0 1,13 1-15 Jan-Nov Mon,Wed,Fri".to_string(),
-    },
-  ];
+  let groups = Vec::new();
   let mut instance = Instance {
     scheduler: None,
     groups,
@@ -71,6 +54,7 @@ async fn main() {
       error_popup,
       notifications::get_groups,
       notifications::new_group,
+      notifications::delete_group,
     ])
     .manage(Data(Mutex::new(instance)))
     .plugin(tauri_plugin_window_state::Builder::default().build())

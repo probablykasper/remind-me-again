@@ -42,7 +42,7 @@
           groups = newGroups
         }}
       />
-      {#each groups as group (group.id)}
+      {#each groups as group, i (group.id)}
         <div
           in:receive={{ key: group.id, duration: 400 }}
           out:send={{ key: group.id, duration: 400 }}
@@ -50,8 +50,8 @@
         >
           <Item
             bind:group
-            onDelete={() => {
-              groups = groups.filter((g) => g.id !== group.id)
+            onDelete={async () => {
+              groups = await runCmd('delete_group', { index: i })
             }}
           />
         </div>

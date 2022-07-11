@@ -31,7 +31,7 @@
   let group: Group = newBlank()
   function newBlank(): Group {
     return {
-      id: 0,
+      id: '',
       enabled: true,
       title: '',
       description: '',

@@ -12,8 +12,8 @@ use std::sync::Mutex;
 use std::thread;
 use tauri::api::{dialog, shell};
 use tauri::{
-  command, AboutMetadata, AppHandle, CustomMenuItem, Manager, Menu, MenuEntry, MenuItem, Submenu,
-  Window, WindowBuilder, WindowUrl,
+  command, AboutMetadata, AppHandle, CustomMenuItem, Manager, Menu, MenuEntry, MenuItem, State,
+  Submenu, Window, WindowBuilder, WindowUrl,
 };
 use tauri::{SystemTray, SystemTrayEvent};
 
@@ -49,15 +49,14 @@ fn main() {
     enabled: true,
     id: "0".to_string(),
     job_id: None,
-    cron: "0 * * * * *".to_string(),
+    cron: "*/10 * * * * *".to_string(),
     next_date: None,
   }];
-  let mut instance = Instance {
+  let instance = Instance {
     groups,
     bg_handle: None,
     bundle_identifier: ctx.config().tauri.bundle.identifier.clone(),
   };
-  instance.start();
 
   let app = tauri::Builder::default()
     .invoke_handler(tauri::generate_handler![
@@ -153,6 +152,11 @@ fn main() {
     })
     .build(ctx)
     .expect("error while running tauri application");
+  {
+    let data: State<Data> = app.state();
+    let mut x = data.0.lock().unwrap();
+    x.start();
+  }
 
   app.run(|app_handle, e| match e {
     tauri::RunEvent::ExitRequested { api, .. } => {

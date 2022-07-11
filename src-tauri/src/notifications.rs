@@ -3,7 +3,6 @@ use chrono::offset::Local;
 use nanoid::nanoid;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
-use std::panic::catch_unwind;
 use std::str::FromStr;
 use std::sync::Mutex;
 use tauri::api::dialog;
@@ -39,7 +38,6 @@ impl Group {
       let job = Job::cron_schedule(c);
       let group = self.clone();
       let job_id = scheduler.insert(job, move |_id| {
-        println!("Remind {}", group.title);
         let result = Notification::new(&a)
           .title(&group.title)
           .body(&group.description)

@@ -54,7 +54,7 @@ fn main() {
   }];
   let instance = Instance {
     groups,
-    bg_handle: None,
+    scheduler: None,
     bundle_identifier: ctx.config().tauri.bundle.identifier.clone(),
   };
 

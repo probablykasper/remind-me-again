@@ -54,44 +54,14 @@ impl Group {
   }
 }
 
-use once_cell::sync::Lazy;
-static SCHEDULER_MUTEX: Lazy<Mutex<Option<Scheduler<Local>>>> = Lazy::new(|| Mutex::new(None));
-
-#[tokio::main]
-async fn runtime(groups: Vec<Group>, bundle_identifier: String) -> Result<(), String> {
-  let (mut scheduler, sched_service) = Scheduler::<Local>::launch(tokio::time::sleep);
-
-  let mut errors = Vec::new();
-  for mut group in groups {
-    match group.create_job(&mut scheduler, bundle_identifier.clone()) {
-      Ok(_) => {}
-      Err(e) => errors.push(e),
-    };
-  }
-  match errors.get(0) {
-    Some(e) => {
-      dialog::MessageDialogBuilder::new("Error", e).show(|_| {});
-    }
-    None => {}
-  }
-
-  {
-    let mut scheduler_locked = SCHEDULER_MUTEX.lock().unwrap();
-    *scheduler_locked = Some(scheduler);
-  }
-  sched_service.await;
-  Ok(())
-}
-
 pub struct Instance {
   pub groups: Vec<Group>,
-  pub bg_handle: Option<std::thread::JoinHandle<Result<(), String>>>,
+  pub scheduler: Option<Scheduler<Local>>,
   pub bundle_identifier: String,
 }
 impl Instance {
   pub fn add_group(&mut self, mut group: Group) -> Result<(), String> {
-    let mut scheduler = SCHEDULER_MUTEX.lock().unwrap();
-    match &mut *scheduler {
+    match &mut self.scheduler {
       Some(scheduler) => {
         group.create_job(scheduler, self.bundle_identifier.clone())?;
         self.groups.push(group);
@@ -118,8 +88,7 @@ impl Instance {
     panic!("Error generating ID: Generated IDs already exist")
   }
   pub fn delete_group(&mut self, index: usize) {
-    let mut scheduler = SCHEDULER_MUTEX.lock().unwrap();
-    let scheduler = match &mut *scheduler {
+    let scheduler = match &mut self.scheduler {
       Some(scheduler) => scheduler,
       None => {
         self.groups.remove(index);
@@ -136,10 +105,24 @@ impl Instance {
     let groups = self.groups.clone();
     let bundle_identifier = self.bundle_identifier.clone();
 
-    let tokio_thread = std::thread::spawn(|| {
-      return runtime(groups, bundle_identifier);
-    });
-    self.bg_handle = Some(tokio_thread);
+    let (mut scheduler, sched_service) = Scheduler::<Local>::launch(tokio::time::sleep);
+
+    let mut errors = Vec::new();
+    for mut group in groups {
+      match group.create_job(&mut scheduler, bundle_identifier.clone()) {
+        Ok(_) => {}
+        Err(e) => errors.push(e),
+      };
+    }
+    match errors.get(0) {
+      Some(e) => {
+        dialog::MessageDialogBuilder::new("Error", e).show(|_| {});
+      }
+      None => {}
+    }
+
+    self.scheduler = Some(scheduler);
+    tauri::async_runtime::spawn(sched_service);
   }
 }
 

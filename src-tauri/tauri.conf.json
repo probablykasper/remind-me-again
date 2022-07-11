@@ -43,7 +43,8 @@
       }
     },
     "systemTray": {
-      "iconPath": "./icons/icon.png"
+      "iconPath": "../assets/Logo template image.png",
+      "iconAsTemplate": true
     },
     "updater": {
       "active": false

@@ -21,8 +21,8 @@
     resize()
   }
 
-  async function create(group: Group) {
-    const newGroups: Group[] = await runCmd('new_group', { group })
+  async function create(newGroup: Group) {
+    const newGroups: Group[] = await runCmd('new_group', { group: newGroup })
     editMode = false
     onCreate(newGroups)
     group = newBlank()

@@ -3,7 +3,10 @@ use chrono::offset::Local;
 use nanoid::nanoid;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
+use std::panic::catch_unwind;
+use std::str::FromStr;
 use std::sync::Mutex;
+use tauri::api::dialog;
 use tauri::api::notification::Notification;
 use tauri::{command, State};
 
@@ -29,18 +32,20 @@ pub struct Group {
 impl Group {
   pub fn create_job(&mut self, scheduler: &mut Scheduler<Local>, a: String) -> Result<(), String> {
     if self.enabled {
-      let job = match Job::cron(self.cron.as_str()) {
-        Ok(job) => job,
-        Err(e) => return Err(e.to_string()),
+      let c = match cron::Schedule::from_str(&self.cron) {
+        Ok(c) => c,
+        Err(e) => throw!("Invalid schedule: {}", e),
       };
+      let job = Job::cron_schedule(c);
       let group = self.clone();
       let job_id = scheduler.insert(job, move |_id| {
+        println!("Remind {}", group.title);
         let result = Notification::new(&a)
           .title(&group.title)
           .body(&group.description)
           .show();
         match result {
-          Ok(_) => {}
+          Ok(_) => println!("Showed notification"),
           Err(e) => eprintln!("Could not show notification: {}", e),
         }
       });
@@ -51,21 +56,51 @@ impl Group {
   }
 }
 
+use once_cell::sync::Lazy;
+static SCHEDULER_MUTEX: Lazy<Mutex<Option<Scheduler<Local>>>> = Lazy::new(|| Mutex::new(None));
+
+#[tokio::main]
+async fn runtime(groups: Vec<Group>, bundle_identifier: String) -> Result<(), String> {
+  let (mut scheduler, sched_service) = Scheduler::<Local>::launch(tokio::time::sleep);
+
+  let mut errors = Vec::new();
+  for mut group in groups {
+    match group.create_job(&mut scheduler, bundle_identifier.clone()) {
+      Ok(_) => {}
+      Err(e) => errors.push(e),
+    };
+  }
+  match errors.get(0) {
+    Some(e) => {
+      dialog::MessageDialogBuilder::new("Error", e).show(|_| {});
+    }
+    None => {}
+  }
+
+  {
+    let mut scheduler_locked = SCHEDULER_MUTEX.lock().unwrap();
+    *scheduler_locked = Some(scheduler);
+  }
+  sched_service.await;
+  Ok(())
+}
+
 pub struct Instance {
-  pub scheduler: Option<Scheduler<Local>>,
   pub groups: Vec<Group>,
+  pub bg_handle: Option<std::thread::JoinHandle<Result<(), String>>>,
   pub bundle_identifier: String,
 }
 impl Instance {
   pub fn add_group(&mut self, mut group: Group) -> Result<(), String> {
-    match &mut self.scheduler {
+    let mut scheduler = SCHEDULER_MUTEX.lock().unwrap();
+    match &mut *scheduler {
       Some(scheduler) => {
         group.create_job(scheduler, self.bundle_identifier.clone())?;
         self.groups.push(group);
       }
       None => {
         self.groups.push(group);
-        self.start()?;
+        self.start();
       }
     };
     Ok(())
@@ -85,7 +120,8 @@ impl Instance {
     panic!("Error generating ID: Generated IDs already exist")
   }
   pub fn delete_group(&mut self, index: usize) {
-    let scheduler = match &mut self.scheduler {
+    let mut scheduler = SCHEDULER_MUTEX.lock().unwrap();
+    let scheduler = match &mut *scheduler {
       Some(scheduler) => scheduler,
       None => {
         self.groups.remove(index);
@@ -98,26 +134,14 @@ impl Instance {
     };
     self.groups.remove(index);
   }
-  pub fn start(&mut self) -> Result<(), String> {
-    let (mut scheduler, sched_service) = Scheduler::<Local>::launch(tokio::time::sleep);
+  pub fn start(&mut self) {
+    let groups = self.groups.clone();
+    let bundle_identifier = self.bundle_identifier.clone();
 
-    let mut err = None;
-    for group in &mut self.groups {
-      match group.create_job(&mut scheduler, self.bundle_identifier.clone()) {
-        Ok(_) => {}
-        Err(e) => {
-          err = Some(e);
-        }
-      };
-    }
-    self.scheduler = Some(scheduler);
-
-    tokio::spawn(sched_service);
-
-    match err {
-      Some(e) => Err(e.to_string()),
-      None => Ok(()),
-    }
+    let tokio_thread = std::thread::spawn(|| {
+      return runtime(groups, bundle_identifier);
+    });
+    self.bg_handle = Some(tokio_thread);
   }
 }
 

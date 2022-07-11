@@ -7,7 +7,7 @@ use cocoa::appkit::NSApplication;
 use cocoa::appkit::NSApplicationActivationPolicy::{
   NSApplicationActivationPolicyAccessory, NSApplicationActivationPolicyRegular,
 };
-use notifications::{Data, Instance};
+use notifications::{Data, Group, Instance};
 use std::sync::Mutex;
 use std::thread;
 use tauri::api::{dialog, shell};
@@ -16,7 +16,6 @@ use tauri::{
   Window, WindowBuilder, WindowUrl,
 };
 use tauri::{SystemTray, SystemTrayEvent};
-use tokio;
 
 #[macro_export]
 macro_rules! throw {
@@ -35,8 +34,7 @@ fn error_popup(msg: String, win: Window) {
 
 mod notifications;
 
-#[tokio::main]
-async fn main() {
+fn main() {
   let ctx = tauri::generate_context!();
 
   // macOS "App Nap" periodically pauses our app when it's in the background.
@@ -44,15 +42,22 @@ async fn main() {
   #[cfg(target_os = "macos")]
   macos_app_nap::prevent();
 
-  tauri::async_runtime::set(tokio::runtime::Handle::current());
-
-  let groups = Vec::new();
+  // let groups = Vec::new();
+  let groups = vec![Group {
+    title: "Test".to_string(),
+    description: "x".to_string(),
+    enabled: true,
+    id: "0".to_string(),
+    job_id: None,
+    cron: "0 * * * * *".to_string(),
+    next_date: None,
+  }];
   let mut instance = Instance {
-    scheduler: None,
     groups,
+    bg_handle: None,
     bundle_identifier: ctx.config().tauri.bundle.identifier.clone(),
   };
-  let instance_result = instance.start();
+  instance.start();
 
   let app = tauri::Builder::default()
     .invoke_handler(tauri::generate_handler![
@@ -64,13 +69,7 @@ async fn main() {
     .manage(Data(Mutex::new(instance)))
     .plugin(tauri_plugin_window_state::Builder::default().build())
     .setup(|app| {
-      let win = create_window(&app.app_handle());
-
-      match instance_result {
-        Ok(_) => {}
-        Err(e) => error_popup(e, win.clone()),
-      }
-
+      let _win = create_window(&app.app_handle());
       Ok(())
     })
     .menu(Menu::with_items([
@@ -135,40 +134,20 @@ async fn main() {
     .system_tray(SystemTray::new())
     .on_system_tray_event(|app, event| match event {
       SystemTrayEvent::LeftClick { .. } => {
-        match app.get_window("main") {
-          Some(window) => {
-            // window.hide().unwrap();
-            window.close().unwrap();
-            hide_app();
-            set_activation_policy_runtime(NSApplicationActivationPolicyAccessory);
-          }
-          None => {
-            set_activation_policy_runtime(NSApplicationActivationPolicyRegular);
-            // window.show().unwrap();
-            let window = create_window(&app.app_handle());
-            std::thread::sleep(std::time::Duration::from_millis(5));
-            window.set_focus().unwrap();
-          }
-        }
-        // let window = app.get_window("main");
-        // let is_visible = match window {
-        //   Some(window) => window.is_visible(),
-        //   None => false,
-        // };
-        // let is_visible = window.is_visible().unwrap();
-        // println!("{:?}", is_visible);
-        // if is_visible {
-        //   // window.hide().unwrap();
-        //   window.close().unwrap();
-        //   hide_app();
-        //   set_activation_policy_runtime(NSApplicationActivationPolicyAccessory);
-        // } else {
-        //   set_activation_policy_runtime(NSApplicationActivationPolicyRegular);
-        //   // window.show().unwrap();
-        //   create_window(&app.app_handle());
-        //   std::thread::sleep(std::time::Duration::from_millis(5));
-        //   window.set_focus().unwrap();
-        // }
+        let window = match app.get_window("main") {
+          Some(window) => match window.is_visible().expect("winvis") {
+            true => {
+              window.close().expect("winclose");
+              set_activation_policy_runtime(NSApplicationActivationPolicyAccessory);
+              return;
+            }
+            false => window,
+          },
+          None => create_window(&app.app_handle()),
+        };
+        set_activation_policy_runtime(NSApplicationActivationPolicyRegular);
+        std::thread::sleep(std::time::Duration::from_millis(5));
+        window.set_focus().unwrap();
       }
       _ => {}
     })
@@ -183,7 +162,6 @@ async fn main() {
       tauri::WindowEvent::CloseRequested { api, .. } => {
         api.prevent_close();
         app_handle.get_window("main").unwrap().close().unwrap();
-        hide_app();
         set_activation_policy_runtime(NSApplicationActivationPolicyAccessory);
       }
       _ => {}
@@ -250,22 +228,9 @@ fn create_window(app: &AppHandle) -> Window {
   win
 }
 
-fn hide_app() {
-  #[cfg(target_os = "macos")]
-  {
-    // hide the application
-    // manual for now (PR https://github.com/tauri-apps/tauri/pull/3689)
-    use objc::*;
-    let cls = objc::runtime::Class::get("NSApplication").unwrap();
-    let app: cocoa::base::id = unsafe { msg_send![cls, sharedApplication] };
-    unsafe { msg_send![app, hide: 0] }
-  }
-}
-
 fn set_activation_policy_runtime(policy: cocoa::appkit::NSApplicationActivationPolicy) {
   #[cfg(target_os = "macos")]
   {
-    println!("acc");
     use objc::*;
     let cls = objc::runtime::Class::get("NSApplication").unwrap();
     let app: cocoa::base::id = unsafe { msg_send![cls, sharedApplication] };

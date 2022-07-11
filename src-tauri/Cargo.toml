@@ -24,6 +24,8 @@ async-cron-scheduler = "1.0"
 tauri-plugin-window-state = "0.1"
 nanoid = "0.4"
 tao = "0.12"
+once_cell = "1.13"
+cron = "0.11"
 
 [target.'cfg(target_os = "macos")'.dependencies]
 macos-app-nap = "0.0.1"

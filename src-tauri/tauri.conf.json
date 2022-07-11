@@ -1,6 +1,6 @@
 {
   "package": {
-    "productName": "Tauri Template"
+    "productName": "Remind Me Again"
   },
   "build": {
     "distDir": "../build",
@@ -12,7 +12,7 @@
     "bundle": {
       "active": true,
       "targets": ["dmg", "deb", "appimage", "msi"],
-      "identifier": "com.example.tauri-template",
+      "identifier": "space.kasper.remind-me-again",
       "icon": [
         "icons/32x32.png",
         "icons/128x128.png",
@@ -22,8 +22,8 @@
       ],
       "resources": [],
       "externalBin": [],
-      "copyright": "© 2021 kasper.space",
-      "category": "DeveloperTool",
+      "copyright": "© 2022 kasper.space",
+      "category": "Productivity",
       "shortDescription": "",
       "longDescription": "",
       "deb": {

@@ -49,7 +49,7 @@ async fn main() {
       enabled: true,
       id: 0,
       next_date: Some(0),
-      repeat: notifications::Repeat::Daily,
+      cron: "0 0 0 * * *".to_string(),
     },
     Group {
       title: "Things".to_string(),
@@ -57,10 +57,14 @@ async fn main() {
       enabled: true,
       id: 1,
       next_date: Some(0),
-      repeat: notifications::Repeat::Never,
+      cron: "0 0 1,13 1-15 Jan-Nov Mon,Wed,Fri".to_string(),
     },
   ];
-  let instance = Instance::init(groups).await;
+  let mut instance = Instance {
+    scheduler: None,
+    groups,
+  };
+  let instance_result = instance.start();
 
   tauri::Builder::default()
     .invoke_handler(tauri::generate_handler![
@@ -69,14 +73,20 @@ async fn main() {
       notifications::new_group,
     ])
     .manage(Data(Mutex::new(instance)))
+    .plugin(tauri_plugin_window_state::Builder::default().build())
     .setup(|app| {
       let _win = WindowBuilder::new(app, "main", WindowUrl::default())
-        .title("RemindMeAgain")
+        .title("Remind Me Again")
         .inner_size(400.0, 550.0)
-        .min_inner_size(300.0, 200.0)
+        .min_inner_size(400.0, 200.0)
         .transparent(true)
         .build()
         .expect("Unable to create window");
+
+      match instance_result {
+        Ok(_) => {}
+        Err(e) => error_popup(e, _win.clone()),
+      }
 
       #[cfg(target_os = "macos")]
       {
@@ -177,7 +187,7 @@ async fn main() {
       let event_name = event.menu_item_id();
       match event_name {
         "Learn More" => {
-          let url = "https://github.com/probablykasper/tauri-template".to_string();
+          let url = "https://github.com/probablykasper/remind-me-again".to_string();
           shell::open(&event.window().shell_scope(), url, None).unwrap();
         }
         _ => {}

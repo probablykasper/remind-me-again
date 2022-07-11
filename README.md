@@ -1,14 +1,4 @@
-# Tauri Svelte Template
-
-- **Tauri**
-- **GitHub action** for cross-platform builds
-- **Svelte**
-- **Vite**
-- **TypeScript**
-- **`svelte-preprocess`** with Sass installed by default
-- **Hot module replacement**
-- **ESLint**
-- **Prettier**
+# Remind Me Again
 
 ## Dev instructions
 

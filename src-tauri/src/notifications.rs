@@ -1,9 +1,9 @@
-use chrono;
+use async_cron_scheduler::{Job, Scheduler};
+use chrono::offset::Local;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::sync::Mutex;
 use tauri::{command, State};
-use tokio_cron_scheduler::{Job, JobScheduler};
 
 #[derive(Serialize, Deserialize)]
 pub enum Repeat {
@@ -19,32 +19,65 @@ pub struct Group {
   pub description: String,
   pub enabled: bool,
   pub id: u64,
-  pub repeat: Repeat,
+  pub cron: String,
   pub next_date: Option<u64>,
+}
+impl Group {
+  pub fn create_job(&self) -> Result<Job<Local>, String> {
+    match Job::cron(self.cron.as_str()) {
+      Ok(job) => Ok(job),
+      Err(e) => Err(e.to_string()),
+    }
+  }
 }
 
 pub struct Instance {
-  pub job_scheduler: JobScheduler,
+  pub scheduler: Option<Scheduler<Local>>,
   pub groups: Vec<Group>,
 }
 impl Instance {
-  pub async fn init(groups: Vec<Group>) -> Instance {
-    let sched = JobScheduler::new().expect("new sched");
+  pub fn add_group(&mut self, group: Group) -> Result<(), String> {
+    match &mut self.scheduler {
+      Some(scheduler) => {
+        let job = group.create_job()?;
+        let _job_id = scheduler.insert(job, |id| {
+          println!("Job {:?}", id);
+        });
+        println!("Scheduled \"{}\" at {}", group.title, group.cron);
+        self.groups.push(group);
+      }
+      None => {
+        self.groups.push(group);
+        self.start()?;
+      }
+    };
+    Ok(())
+  }
+  pub fn start(&mut self) -> Result<(), String> {
+    let (mut scheduler, _sched_service) = Scheduler::<Local>::launch(tokio::time::sleep);
 
-    sched
-      .add(
-        Job::new("0 * * * * *", |_uuid, _l| {
-          println!("I run every 5 seconds {}", chrono::offset::Local::now());
-        })
-        .expect("new job"),
-      )
-      .expect("add job");
+    let mut err = None;
+    for group in &self.groups {
+      if !group.enabled {
+        continue;
+      }
+      let job = match Job::cron(group.cron.as_str()) {
+        Ok(job) => job,
+        Err(e) => {
+          err = Some(e);
+          continue;
+        }
+      };
+      let _job_id = scheduler.insert(job, |id| {
+        println!("Job {:?}", id);
+      });
+      println!("Scheduled \"{}\" at {}", group.title, group.cron);
+    }
 
-    sched.start().expect("start sched");
-
-    Instance {
-      job_scheduler: sched,
-      groups: groups,
+    self.scheduler = Some(scheduler);
+    match err {
+      Some(e) => Err(e.to_string()),
+      None => Ok(()),
     }
   }
 }
@@ -73,6 +106,6 @@ pub async fn new_group(mut group: Group, data: State<'_, Data>) -> Result<Value,
     .max_by_key(|g| g.id)
     .map(|g| g.id + 1)
     .unwrap_or(0);
-  data.groups.push(group);
+  data.add_group(group)?;
   to_json(&data.groups)
 }

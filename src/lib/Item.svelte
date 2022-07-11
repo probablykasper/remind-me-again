@@ -66,8 +66,6 @@
 
 <svelte:body
   on:mousedown={(e) => {
-    console.log(e.target)
-
     if (e.target instanceof HTMLElement && !card.contains(e.target)) {
       cancel()
     }

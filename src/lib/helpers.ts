@@ -1,4 +1,5 @@
 import { invoke } from '@tauri-apps/api/tauri'
+import crontrue from 'cronstrue'
 
 export function popup(msg: string) {
   invoke('error_popup', { msg })
@@ -64,5 +65,13 @@ export function invisibleCursorFix(node: HTMLInputElement) {
     destroy() {
       node.removeEventListener('focus', handleFocus)
     },
+  }
+}
+
+export function getCronText(cron: string) {
+  try {
+    return crontrue.toString(cron)
+  } catch (e) {
+    return 'Invalid'
   }
 }

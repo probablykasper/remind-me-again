@@ -4,9 +4,9 @@
   import { slide } from 'svelte/transition'
   import Edit from './Edit.svelte'
   import type { Group } from './types'
-  import { invisibleCursorFix } from './helpers'
+  import { invisibleCursorFix, runCmd } from './helpers'
 
-  export let onCreate: (group: Group) => void
+  export let onCreate: (newGroups: Group[]) => void
   let editMode = false
 
   let textarea: HTMLTextAreaElement
@@ -21,6 +21,13 @@
     resize()
   }
 
+  async function create(group: Group) {
+    const newGroups: Group[] = await runCmd('new_group', { group })
+    editMode = false
+    onCreate(newGroups)
+    group = newBlank()
+  }
+
   let group: Group = newBlank()
   function newBlank(): Group {
     return {
@@ -29,7 +36,7 @@
       title: '',
       description: '',
       next_date: Date.now(),
-      repeat: 'never',
+      cron: '0 0 12,13 */2 * *',
     }
   }
   $: editMode = group.title + group.description !== ''
@@ -71,9 +78,7 @@
         group = newBlank()
       }}
       onSave={() => {
-        editMode = false
-        onCreate(group)
-        group = newBlank()
+        create(group)
       }}
     />
   {/if}

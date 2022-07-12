@@ -32,9 +32,6 @@
   async function cancel() {
     editGroup = JSON.parse(JSON.stringify(group))
     isEditing = false
-    if (group.next_date !== null) {
-      group.next_date = new Date(group.next_date).getTime()
-    }
     await tick()
     card.focus()
   }

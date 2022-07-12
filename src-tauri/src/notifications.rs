@@ -34,7 +34,6 @@ pub struct Group {
   #[serde(skip)]
   pub job_id: Option<JobId>,
   pub cron: String,
-  pub next_date: Option<u64>,
 }
 impl Group {
   pub fn create_job(&mut self, cron: cron::Schedule, scheduler: &mut Scheduler<Local>, a: String) {

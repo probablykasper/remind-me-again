@@ -35,7 +35,6 @@
       enabled: true,
       title: '',
       description: '',
-      next_date: Date.now(),
       cron: '0 0 12,13 */2 * *',
     }
   }

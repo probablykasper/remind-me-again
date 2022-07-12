@@ -45,9 +45,6 @@
       cronInput.setSelectionRange(segmentIndex, segmentIndex + segmentText.length)
     }
   }
-
-  let nextDate = group.next_date === null ? null : new Date(group.next_date)
-  $: group.next_date = nextDate === null ? null : nextDate.getTime()
 </script>
 
 <div in:slide={{ duration: 200 }} out:slide={{ duration: 300 }}>

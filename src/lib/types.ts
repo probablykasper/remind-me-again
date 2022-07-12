@@ -4,5 +4,4 @@ export type Group = {
   enabled: boolean
   id: string
   cron: string
-  next_date: number | null
 }

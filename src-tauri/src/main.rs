@@ -3,19 +3,16 @@
   windows_subsystem = "windows"
 )]
 
-use cocoa::appkit::NSApplication;
-use cocoa::appkit::NSApplicationActivationPolicy::{
-  NSApplicationActivationPolicyAccessory, NSApplicationActivationPolicyRegular,
-};
 use notifications::{Data, Instance};
 use std::sync::Mutex;
 use std::thread;
 use tauri::api::{dialog, shell};
+#[cfg(target_os = "macos")]
+use tauri::AboutMetadata;
 use tauri::{
-  command, AboutMetadata, AppHandle, CustomMenuItem, Manager, Menu, MenuEntry, MenuItem, State,
-  Submenu, Window, WindowBuilder, WindowUrl,
+  command, AppHandle, CustomMenuItem, Manager, Menu, MenuEntry, MenuItem, State, Submenu,
+  SystemTray, SystemTrayEvent, Window, WindowBuilder, WindowUrl,
 };
-use tauri::{SystemTray, SystemTrayEvent};
 
 #[macro_export]
 macro_rules! throw {
@@ -143,14 +140,14 @@ fn main() {
               // hide the window instead of closing due to processes not closing memory leak: https://github.com/tauri-apps/wry/issues/590
               window.hide().expect("winhide");
               // window.close().expect("winclose");
-              set_activation_policy_runtime(NSApplicationActivationPolicyAccessory);
+              set_is_accessory_policy(true);
               return;
             }
             false => window,
           },
           None => create_window(&app.app_handle()),
         };
-        set_activation_policy_runtime(NSApplicationActivationPolicyRegular);
+        set_is_accessory_policy(false);
         std::thread::sleep(std::time::Duration::from_millis(5));
         window.set_focus().unwrap();
       }
@@ -175,7 +172,7 @@ fn main() {
         // hide the window instead of closing due to processes not closing memory leak: https://github.com/tauri-apps/wry/issues/590
         window.hide().expect("winhide");
         // window.close().expect("winclose");
-        set_activation_policy_runtime(NSApplicationActivationPolicyAccessory);
+        set_is_accessory_policy(true);
       }
       _ => {}
     },
@@ -241,14 +238,24 @@ fn create_window(app: &AppHandle) -> Window {
   win
 }
 
-fn set_activation_policy_runtime(policy: cocoa::appkit::NSApplicationActivationPolicy) {
+#[allow(unused_variables)]
+fn set_is_accessory_policy(accessory: bool) {
   #[cfg(target_os = "macos")]
   {
+    use cocoa::appkit::NSApplication;
+    use cocoa::appkit::NSApplicationActivationPolicy::{
+      NSApplicationActivationPolicyAccessory, NSApplicationActivationPolicyRegular,
+    };
     use objc::*;
+
     let cls = objc::runtime::Class::get("NSApplication").unwrap();
     let app: cocoa::base::id = unsafe { msg_send![cls, sharedApplication] };
     unsafe {
-      app.setActivationPolicy_(policy);
+      if accessory {
+        app.setActivationPolicy_(NSApplicationActivationPolicyAccessory);
+      } else {
+        app.setActivationPolicy_(NSApplicationActivationPolicyRegular);
+      }
     }
   }
 }

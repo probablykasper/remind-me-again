@@ -71,8 +71,9 @@ fn main() {
   let app = tauri::Builder::default()
     .invoke_handler(tauri::generate_handler![
       error_popup,
-      notifications::get_groups,
       notifications::new_group,
+      notifications::get_groups,
+      notifications::update_group,
       notifications::delete_group,
     ])
     .manage(Data(Mutex::new(instance)))

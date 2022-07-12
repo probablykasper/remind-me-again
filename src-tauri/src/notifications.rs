@@ -18,6 +18,13 @@ pub enum Repeat {
   Daily,
 }
 
+pub fn parse_cron(s: &str) -> Result<cron::Schedule, String> {
+  match cron::Schedule::from_str(s) {
+    Ok(schedule) => Ok(schedule),
+    Err(e) => throw!("Invalid schedule: {}", e),
+  }
+}
+
 #[derive(Serialize, Deserialize, Clone)]
 pub struct Group {
   pub title: String,
@@ -30,13 +37,9 @@ pub struct Group {
   pub next_date: Option<u64>,
 }
 impl Group {
-  pub fn create_job(&mut self, scheduler: &mut Scheduler<Local>, a: String) -> Result<(), String> {
+  pub fn create_job(&mut self, cron: cron::Schedule, scheduler: &mut Scheduler<Local>, a: String) {
     if self.enabled {
-      let c = match cron::Schedule::from_str(&self.cron) {
-        Ok(c) => c,
-        Err(e) => throw!("Invalid schedule: {}", e),
-      };
-      let job = Job::cron_schedule(c);
+      let job = Job::cron_schedule(cron);
       let group = self.clone();
       let job_id = scheduler.insert(job, move |_id| {
         let result = Notification::new(&a)
@@ -44,14 +47,13 @@ impl Group {
           .body(&group.description)
           .show();
         match result {
-          Ok(_) => println!("Showed notification"),
+          Ok(_) => println!("Show \"{}\"", group.title),
           Err(e) => eprintln!("Could not show notification: {}", e),
         }
       });
       self.job_id = Some(job_id);
       println!("Created job \"{}\" at {}", self.title, self.cron);
     }
-    Ok(())
   }
 }
 
@@ -68,7 +70,8 @@ impl Instance {
   pub fn add_group(&mut self, mut group: Group) -> Result<(), String> {
     match &mut self.scheduler {
       Some(scheduler) => {
-        group.create_job(scheduler, self.bundle_identifier.clone())?;
+        let schedule = parse_cron(&group.cron)?;
+        group.create_job(schedule, scheduler, self.bundle_identifier.clone());
         self.file.groups.push(group);
       }
       None => {
@@ -106,6 +109,25 @@ impl Instance {
     };
     self.file.groups.remove(index);
   }
+  pub fn create_job(&mut self, new_group: &mut Group) -> Result<(), String> {
+    let schedule = parse_cron(&new_group.cron)?;
+    let scheduler = match &mut self.scheduler {
+      Some(scheduler) => scheduler,
+      None => return Ok(()),
+    };
+    new_group.create_job(schedule, scheduler, self.bundle_identifier.clone());
+    Ok(())
+  }
+  pub fn replace_job(&mut self, job_id: JobId, new_group: &mut Group) -> Result<(), String> {
+    let schedule = parse_cron(&new_group.cron)?;
+    let scheduler = match &mut self.scheduler {
+      Some(scheduler) => scheduler,
+      None => return Ok(()),
+    };
+    scheduler.remove(job_id);
+    new_group.create_job(schedule, scheduler, self.bundle_identifier.clone());
+    Ok(())
+  }
   pub fn start(&mut self) {
     let bundle_identifier = self.bundle_identifier.clone();
 
@@ -113,8 +135,8 @@ impl Instance {
 
     let mut errors = Vec::new();
     for group in &mut self.file.groups {
-      match group.create_job(&mut scheduler, bundle_identifier.clone()) {
-        Ok(_) => {}
+      match parse_cron(&group.cron) {
+        Ok(schedule) => group.create_job(schedule, &mut scheduler, bundle_identifier.clone()),
         Err(e) => errors.push(e),
       };
     }
@@ -133,16 +155,32 @@ impl Instance {
 pub struct Data(pub Mutex<Instance>);
 
 #[command]
+pub async fn new_group(mut group: Group, data: State<'_, Data>) -> Result<Value, String> {
+  let mut data = data.0.lock().unwrap();
+  group.id = data.generate_id();
+  data.add_group(group)?;
+  data.save()?;
+  to_json(&data.file.groups)
+}
+
+#[command]
 pub async fn get_groups(data: State<'_, Data>) -> Result<Value, String> {
   let data = data.0.lock().unwrap();
   to_json(&data.file.groups)
 }
 
 #[command]
-pub async fn new_group(mut group: Group, data: State<'_, Data>) -> Result<Value, String> {
+pub async fn update_group(mut group: Group, data: State<'_, Data>) -> Result<Value, String> {
   let mut data = data.0.lock().unwrap();
-  group.id = data.generate_id();
-  data.add_group(group)?;
+  let i = match data.file.groups.iter().position(|g| g.id == group.id) {
+    Some(i) => i,
+    None => throw!("Group not found"),
+  };
+  match data.file.groups[i].job_id {
+    Some(job_id) => data.replace_job(job_id, &mut group)?,
+    None => data.create_job(&mut group)?,
+  }
+  data.file.groups[i] = group;
   data.save()?;
   to_json(&data.file.groups)
 }

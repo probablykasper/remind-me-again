@@ -45,7 +45,9 @@
 <form
   class="mb-3 flex w-full flex-col rounded bg-white bg-opacity-10"
   class:p-3.5={editMode}
-  on:submit|preventDefault
+  on:submit|preventDefault={() => {
+    create(group)
+  }}
 >
   <input
     class="w-full rounded-t-sm border-none bg-white px-2 py-1 text-sm focus:ring-0"
@@ -76,9 +78,6 @@
       onCancel={() => {
         editMode = false
         group = newBlank()
-      }}
-      onSave={() => {
-        create(group)
       }}
     />
   {/if}

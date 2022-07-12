@@ -5,7 +5,6 @@
 
   export let group: Group
 
-  export let onSave: () => void
   export let onCancel = () => {
     /* noop */
   }
@@ -88,10 +87,8 @@
         class="mr-2 w-full cursor-default rounded-sm bg-[#576f70] px-2 py-1 text-sm"
         on:click|stopPropagation={() => onCancel()}>Cancel</button
       >
-      <button
-        type="submit"
-        class="w-full cursor-default rounded-sm bg-[#31898c] px-2 py-1 text-sm"
-        on:click|stopPropagation={() => onSave()}>Save</button
+      <button type="submit" class="w-full cursor-default rounded-sm bg-[#31898c] px-2 py-1 text-sm"
+        >Save</button
       >
     </div>
   </div>

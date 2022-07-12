@@ -7,7 +7,9 @@
 
   export let group: Group
   export let onDelete: () => void
-  let editMode = false
+  export let onUpdate: () => void
+  let editGroup: Group = JSON.parse(JSON.stringify(group))
+  let isEditing = false
 
   let card: HTMLElement
   let titleInput: HTMLInputElement
@@ -23,24 +25,28 @@
     resize()
   }
 
-  let originalGroup: string | null = null
   function startEdit() {
-    if (!editMode) {
-      editMode = true
-      originalGroup = JSON.stringify(group)
-    }
+    editGroup = JSON.parse(JSON.stringify(group))
+    isEditing = true
   }
-  function cancel() {
-    editMode = false
-    if (originalGroup) {
-      group = JSON.parse(originalGroup)
-      if (group.next_date !== null) {
-        group.next_date = new Date(group.next_date).getTime()
-      }
+  async function cancel() {
+    editGroup = JSON.parse(JSON.stringify(group))
+    isEditing = false
+    if (group.next_date !== null) {
+      group.next_date = new Date(group.next_date).getTime()
     }
+    await tick()
+    card.focus()
   }
-  function save() {
-    editMode = false
+  async function saveEdits() {
+    console.log('saveEdits')
+
+    group.title = editGroup.title
+    group.description = editGroup.description
+    group.cron = editGroup.cron
+    onUpdate()
+    isEditing = false
+    await tick()
     card.focus()
   }
 
@@ -71,14 +77,13 @@
     }
   }} />
 
-<form
-  on:submit|preventDefault={save}
+<div
   bind:this={card}
   class="group mb-3 flex w-full cursor-default items-center rounded-lg p-3.5 text-left shadow-xl outline-none transition-colors duration-150 ease-out focus:bg-[#133134] active:bg-[#133134]"
   class:bg-[#0E2426]={group.enabled}
-  class:bg-[#133134]={editMode}
+  class:bg-[#133134]={isEditing}
   on:keydown={keydown}
-  tabindex={editMode ? null : 0}
+  tabindex={isEditing ? null : 0}
   on:keydown|self={keydownSelf}
 >
   <div class="mr-3.5 rounded-md p-2">
@@ -106,38 +111,48 @@
       >
     {/if}
   </div>
-  <div class="mr-auto flex w-full flex-col" on:mousedown={startEdit}>
+  <form
+    class="mr-auto flex w-full flex-col"
+    on:mousedown={startEdit}
+    on:submit|preventDefault={saveEdits}
+  >
     <input
       bind:this={titleInput}
       class="w-full rounded-t-sm border-none bg-white px-2 py-1 text-sm focus:ring-0"
-      class:bg-opacity-0={!editMode}
-      class:bg-opacity-10={editMode}
-      tabindex={editMode ? 0 : -1}
+      class:bg-opacity-0={!isEditing}
+      class:bg-opacity-10={isEditing}
+      tabindex={isEditing ? 0 : -1}
       placeholder="Title"
       type="text"
-      bind:value={group.title}
+      bind:value={editGroup.title}
       use:invisibleCursorFix
     />
     <textarea
       bind:this={textarea}
       rows="1"
       class="w-full resize-none rounded-b-sm border-none bg-white px-2 py-1 text-xs text-white text-opacity-75 focus:ring-0"
-      class:bg-opacity-0={!editMode}
-      class:bg-opacity-10={editMode}
-      tabindex={editMode ? 0 : -1}
-      placeholder="Description"
+      class:bg-opacity-0={!isEditing}
+      class:bg-opacity-10={isEditing}
+      tabindex={isEditing ? 0 : -1}
+      placeholder={isEditing ? 'Description' : ''}
       type="text"
-      bind:value={group.description}
+      bind:value={editGroup.description}
       on:input={onInput}
     />
-    {#if editMode}
-      <Edit bind:group onSave={save} onCancel={cancel} />
+    {#if isEditing}
+      <Edit bind:group={editGroup} onCancel={cancel} />
     {/if}
-  </div>
+  </form>
   <div on:click|preventDefault|stopPropagation>
-    <Switch class="ml-3.5" bind:value={group.enabled} />
+    <Switch
+      class="ml-3.5"
+      bind:value={group.enabled}
+      onToggle={() => {
+        onUpdate()
+      }}
+    />
   </div>
-</form>
+</div>
 
 <style lang="sass">
   // fix tailwind styles

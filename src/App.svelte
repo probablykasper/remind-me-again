@@ -50,6 +50,9 @@
         >
           <Item
             bind:group
+            onUpdate={async () => {
+              groups = await runCmd('update_group', { group })
+            }}
             onDelete={async () => {
               groups = await runCmd('delete_group', { index: i })
             }}

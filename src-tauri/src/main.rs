@@ -32,16 +32,6 @@ fn error_popup(msg: String, win: Window) {
   });
 }
 
-fn error_popup_main_thread(msg: impl AsRef<str>) {
-  let msg = msg.as_ref().to_string();
-  let builder = rfd::MessageDialog::new()
-    .set_title("Error")
-    .set_description(&msg)
-    .set_buttons(rfd::MessageButtons::Ok)
-    .set_level(rfd::MessageLevel::Info);
-  builder.show();
-}
-
 mod data;
 mod notifications;
 
@@ -54,10 +44,11 @@ fn main() {
   macos_app_nap::prevent();
 
   let app_paths = data::AppPaths::from_tauri_config(ctx.config());
+  let mut error_msg = None;
   let reminders_file = match data::RemindersFile::load(&app_paths) {
-    Ok(groups) => groups,
+    Ok(reminders_file) => reminders_file,
     Err(e) => {
-      error_popup_main_thread(e);
+      error_msg = Some(e);
       data::RemindersFile { groups: Vec::new() }
     }
   };
@@ -79,7 +70,11 @@ fn main() {
     .manage(Data(Mutex::new(instance)))
     .plugin(tauri_plugin_window_state::Builder::default().build())
     .setup(|app| {
-      let _win = create_window(&app.app_handle());
+      let win = create_window(&app.app_handle());
+      match error_msg {
+        Some(error_msg) => error_popup(error_msg, win),
+        None => {}
+      }
       Ok(())
     })
     .menu(Menu::with_items([

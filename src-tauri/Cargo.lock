@@ -2291,7 +2291,6 @@ dependencies = [
  "nanoid",
  "objc",
  "once_cell",
- "rfd",
  "serde",
  "serde_json",
  "tao",

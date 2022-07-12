@@ -51,7 +51,7 @@ impl Group {
         }
       });
       self.job_id = Some(job_id);
-      println!("Created job \"{}\" at {}", self.title, self.cron);
+      println!("Create job \"{}\" at {}", self.title, self.cron);
     }
   }
 }
@@ -117,7 +117,7 @@ impl Instance {
     new_group.create_job(schedule, scheduler, self.bundle_identifier.clone());
     Ok(())
   }
-  pub fn replace_job(&mut self, job_id: JobId, new_group: &mut Group) -> Result<(), String> {
+  pub fn update_job(&mut self, job_id: JobId, new_group: &mut Group) -> Result<(), String> {
     let schedule = parse_cron(&new_group.cron)?;
     let scheduler = match &mut self.scheduler {
       Some(scheduler) => scheduler,
@@ -125,6 +125,7 @@ impl Instance {
     };
     scheduler.remove(job_id);
     new_group.create_job(schedule, scheduler, self.bundle_identifier.clone());
+    println!("Update job \"{}\" at {}", new_group.title, new_group.cron);
     Ok(())
   }
   pub fn start(&mut self) {
@@ -176,7 +177,7 @@ pub async fn update_group(mut group: Group, data: State<'_, Data>) -> Result<Val
     None => throw!("Group not found"),
   };
   match data.file.groups[i].job_id {
-    Some(job_id) => data.replace_job(job_id, &mut group)?,
+    Some(job_id) => data.update_job(job_id, &mut group)?,
     None => data.create_job(&mut group)?,
   }
   data.file.groups[i] = group;

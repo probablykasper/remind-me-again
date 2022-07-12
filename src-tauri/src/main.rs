@@ -124,8 +124,6 @@ fn main() {
         "Window",
         Menu::with_items([MenuItem::Minimize.into(), MenuItem::Zoom.into()]),
       )),
-      // You should always have a Help menu on macOS because it will automatically
-      // show a menu search field
       MenuEntry::Submenu(Submenu::new(
         "Help",
         Menu::with_items([CustomMenuItem::new("Learn More", "Learn More").into()]),
@@ -147,7 +145,9 @@ fn main() {
         let window = match app.get_window("main") {
           Some(window) => match window.is_visible().expect("winvis") {
             true => {
-              window.close().expect("winclose");
+              // hide the window instead of closing due to processes not closing memory leak: https://github.com/tauri-apps/wry/issues/590
+              window.hide().expect("winhide");
+              // window.close().expect("winclose");
               set_activation_policy_runtime(NSApplicationActivationPolicyAccessory);
               return;
             }
@@ -176,7 +176,10 @@ fn main() {
     tauri::RunEvent::WindowEvent { event, .. } => match event {
       tauri::WindowEvent::CloseRequested { api, .. } => {
         api.prevent_close();
-        app_handle.get_window("main").unwrap().close().unwrap();
+        let window = app_handle.get_window("main").expect("getwin");
+        // hide the window instead of closing due to processes not closing memory leak: https://github.com/tauri-apps/wry/issues/590
+        window.hide().expect("winhide");
+        // window.close().expect("winclose");
         set_activation_policy_runtime(NSApplicationActivationPolicyAccessory);
       }
       _ => {}

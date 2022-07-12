@@ -28,13 +28,13 @@ once_cell = "1.13"
 cron = "0.11"
 rfd = "0.9"
 atomicwrites = "0.3"
-# https://github.com/h4llow3En/mac-notification-sys/issues/43
-mac-notification-sys = "=0.5.2"
 
 [target.'cfg(target_os = "macos")'.dependencies]
 macos-app-nap = "0.0.1"
 cocoa = "0.24.0"
 objc = "0.2.7"
+# https://github.com/h4llow3En/mac-notification-sys/issues/43
+mac-notification-sys = "=0.5.2"
 
 [features]
 default = [ "custom-protocol" ]

@@ -2,8 +2,9 @@
   import { onMount, tick } from 'svelte'
   import type { Group } from './types'
   import Switch from './Switch.svelte'
-  import { checkShortcut, invisibleCursorFix } from './helpers'
+  import { checkShortcut, getCronText, invisibleCursorFix } from './helpers'
   import Edit from './Edit.svelte'
+  import { slide } from 'svelte/transition'
 
   export let group: Group
   export let onDelete: () => void
@@ -36,8 +37,6 @@
     card.focus()
   }
   async function saveEdits() {
-    console.log('saveEdits')
-
     group.title = editGroup.title
     group.description = editGroup.description
     group.cron = editGroup.cron
@@ -113,29 +112,40 @@
     on:mousedown={startEdit}
     on:submit|preventDefault={saveEdits}
   >
-    <input
-      bind:this={titleInput}
-      class="w-full rounded-t-sm border-none bg-white px-2 py-1 text-sm focus:ring-0"
+    <div
+      class="rounded-sm bg-white"
       class:bg-opacity-0={!isEditing}
       class:bg-opacity-10={isEditing}
-      tabindex={isEditing ? 0 : -1}
-      placeholder="Title"
-      type="text"
-      bind:value={editGroup.title}
-      use:invisibleCursorFix
-    />
-    <textarea
-      bind:this={textarea}
-      rows="1"
-      class="w-full resize-none rounded-b-sm border-none bg-white px-2 py-1 text-xs text-white text-opacity-75 focus:ring-0"
-      class:bg-opacity-0={!isEditing}
-      class:bg-opacity-10={isEditing}
-      tabindex={isEditing ? 0 : -1}
-      placeholder={isEditing ? 'Description' : ''}
-      type="text"
-      bind:value={editGroup.description}
-      on:input={onInput}
-    />
+    >
+      <input
+        bind:this={titleInput}
+        class="w-full border-none bg-transparent px-2 py-1 text-sm focus:ring-0"
+        tabindex={isEditing ? 0 : -1}
+        placeholder="Title"
+        type="text"
+        bind:value={editGroup.title}
+        use:invisibleCursorFix
+      />
+      {#if isEditing || editGroup.description !== ''}
+        <div class="overflow-hidden" transition:slide|local={{ duration: 200 }}>
+          <textarea
+            bind:this={textarea}
+            rows="1"
+            class="block w-full resize-none border-none bg-transparent px-2 py-1 text-xs text-white text-opacity-75 focus:ring-0"
+            tabindex={isEditing ? 0 : -1}
+            placeholder={isEditing ? 'Description' : ''}
+            type="text"
+            bind:value={editGroup.description}
+            on:input={onInput}
+          />
+        </div>
+      {/if}
+    </div>
+    {#if !isEditing}
+      <p class="px-2 text-xs text-white text-opacity-75" transition:slide|local={{ duration: 100 }}>
+        {getCronText(group.cron)}
+      </p>
+    {/if}
     {#if isEditing}
       <Edit bind:group={editGroup} onCancel={cancel} />
     {/if}

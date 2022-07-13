@@ -1,5 +1,7 @@
 # Remind Me Again
 
+Toggleable cron reminders app for Mac, Linux and Windows
+
 ## Dev instructions
 
 ### Get started

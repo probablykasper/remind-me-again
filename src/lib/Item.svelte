@@ -25,7 +25,14 @@
   function onInput() {
     resize()
   }
+  export function focus() {
+    card.focus()
+  }
 
+  export function edit() {
+    startEdit()
+    titleInput.focus()
+  }
   function startEdit() {
     editGroup = JSON.parse(JSON.stringify(group))
     isEditing = true
@@ -56,8 +63,7 @@
   }
   function keydownSelf(e: KeyboardEvent) {
     if (checkShortcut(e, 'Enter')) {
-      startEdit()
-      titleInput.focus()
+      edit()
       e.preventDefault()
     } else if (checkShortcut(e, 'Backspace')) {
       onDelete()
@@ -107,15 +113,12 @@
       >
     {/if}
   </div>
-  <form
-    class="mr-auto flex w-full flex-col"
-    on:mousedown={startEdit}
-    on:submit|preventDefault={saveEdits}
-  >
+  <form class="mr-auto flex w-full flex-col" on:submit|preventDefault={saveEdits}>
     <div
       class="rounded-sm bg-white"
       class:bg-opacity-0={!isEditing}
       class:bg-opacity-10={isEditing}
+      on:mousedown={startEdit}
     >
       <input
         bind:this={titleInput}
@@ -137,6 +140,12 @@
             type="text"
             bind:value={editGroup.description}
             on:input={onInput}
+            on:keydown={(e) => {
+              if (checkShortcut(e, 'Enter', { cmdOrCtrl: true })) {
+                e.preventDefault()
+                saveEdits()
+              }
+            }}
           />
         </div>
       {/if}

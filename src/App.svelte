@@ -5,8 +5,13 @@
   import './app.css'
   import Item from './lib/Item.svelte'
   import New from './lib/New.svelte'
-  import { runCmd } from './lib/helpers'
+  import { checkShortcut, runCmd } from './lib/helpers'
   import type { Group } from './lib/types'
+  import { onDestroy, SvelteComponent } from 'svelte'
+  import { event } from '@tauri-apps/api'
+
+  let groupElements: SvelteComponent[] = []
+  let focusedGroup: number | null = null
 
   let groups: Group[] = []
   runCmd<Group[]>('get_groups').then((g) => {
@@ -29,6 +34,18 @@
       }
     },
   })
+
+  const unlistenFuture = event.listen('tauri://menu', ({ payload }) => {
+    console.log(payload, focusedGroup)
+    if (payload === 'Edit Reminder' && focusedGroup !== null) {
+      console.log('--w', groupElements[focusedGroup])
+      groupElements[focusedGroup]?.edit()
+    }
+  })
+  onDestroy(async () => {
+    const unlisten = await unlistenFuture
+    unlisten()
+  })
 </script>
 
 <div class="flex min-h-screen w-full flex-col overflow-y-scroll px-4 pb-2">
@@ -47,8 +64,24 @@
           in:receive={{ key: group.id, duration: 400 }}
           out:send={{ key: group.id, duration: 400 }}
           animate:flip={{ duration: 400 }}
+          on:focusin={() => {
+            focusedGroup = i
+          }}
+          on:focusout={() => {
+            focusedGroup = null
+          }}
+          on:keydown={async (e) => {
+            if (checkShortcut(e, 'ArrowUp')) {
+              groupElements[i - 1]?.focus()
+              e.preventDefault()
+            } else if (checkShortcut(e, 'ArrowDown')) {
+              groupElements[i + 1]?.focus()
+              e.preventDefault()
+            }
+          }}
         >
           <Item
+            bind:this={groupElements[i]}
             bind:group
             onUpdate={async () => {
               groups = await runCmd('update_group', { group })

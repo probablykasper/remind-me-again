@@ -1,6 +1,18 @@
 # Remind Me Again
 
-Toggleable cron reminders app for Mac, Linux and Windows
+<p align="center">
+  <img src="./assets/Logo.png" width="80">
+</p>
+<h3 align="center">Remind Me Again</h3>
+<p align="center">
+  Toggleable reminders app for Mac, Linux and Windows
+  <br/>
+  <a href="https://github.com/probablykasper/remind-me-again/releases"><b>Download for Mac, Windows or Linux</b></a>
+</p>
+
+<p align='center'>
+  <img height='500' src='assets/screenshot.webp'>
+</p>
 
 ## Dev instructions
 

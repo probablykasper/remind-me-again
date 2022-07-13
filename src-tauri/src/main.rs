@@ -92,7 +92,15 @@ fn main() {
       )),
       MenuEntry::Submenu(Submenu::new(
         "File",
-        Menu::with_items([MenuItem::CloseWindow.into()]),
+        Menu::with_items([
+          CustomMenuItem::new("New Reminder", "New Reminder")
+            .accelerator("CmdOrCtrl+N")
+            .into(),
+          MenuItem::Separator.into(),
+          CustomMenuItem::new("Edit Reminder", "Edit Reminder").into(),
+          MenuItem::Separator.into(),
+          MenuItem::CloseWindow.into(),
+        ]),
       )),
       MenuEntry::Submenu(Submenu::new(
         "Edit",

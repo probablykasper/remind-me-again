@@ -24,8 +24,8 @@
       "externalBin": [],
       "copyright": "© 2022 kasper.space",
       "category": "Productivity",
-      "shortDescription": "",
-      "longDescription": "",
+      "shortDescription": "Toggleable reminders app",
+      "longDescription": "Toggleable reminders app",
       "deb": {
         "depends": []
       },

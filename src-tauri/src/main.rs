@@ -193,11 +193,13 @@ fn create_window(app: &AppHandle) -> Window {
     .title("Remind Me Again")
     .inner_size(400.0, 550.0)
     .min_inner_size(400.0, 200.0)
-    .skip_taskbar(true)
     .visible(false) // tauri_plugin_window_state reveals window
-    .transparent(true)
-    .build()
-    .expect("Unable to create window");
+    .skip_taskbar(true);
+
+  #[cfg(target_os = "macos")]
+  let win = win.transparent(true);
+
+  let win = win.build().expect("Unable to create window");
 
   #[cfg(target_os = "macos")]
   {
@@ -231,10 +233,7 @@ fn create_window(app: &AppHandle) -> Window {
       // set window background color
       let bg_color = cocoa::appkit::NSColor::colorWithRed_green_blue_alpha_(
         cocoa::base::nil,
-        // 34.0 / 255.0 * 0.5,
-        // 38.0 / 255.0 * 0.5,
-        // 45.5 / 255.0 * 0.5,
-        // 1.0,
+        // also used in App.svelte
         8.0 / 255.0,
         9.0 / 255.0,
         13.0 / 255.0,

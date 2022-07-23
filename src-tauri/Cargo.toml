@@ -29,8 +29,7 @@ atomicwrites = "0.3"
 macos-app-nap = "0.0.1"
 cocoa = "0.24.0"
 objc = "0.2.7"
-# https://github.com/h4llow3En/mac-notification-sys/issues/43
-mac-notification-sys = "=0.5.2"
+mac-notification-sys = "0.5.5"
 
 [features]
 default = [ "custom-protocol" ]

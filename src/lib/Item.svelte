@@ -77,7 +77,8 @@
     if (e.target instanceof HTMLElement && !card.contains(e.target)) {
       cancel()
     }
-  }} />
+  }}
+/>
 
 <div
   bind:this={card}

@@ -157,6 +157,10 @@ fn main() {
         };
         set_is_accessory_policy(false);
         std::thread::sleep(std::time::Duration::from_millis(5));
+        #[cfg(not(target_os = "macos"))]
+        {
+          window.show().unwrap();
+        }
         window.set_focus().unwrap();
       }
       _ => {}

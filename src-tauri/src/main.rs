@@ -201,7 +201,9 @@ fn create_window(app: &AppHandle) -> Window {
     .skip_taskbar(true);
 
   #[cfg(target_os = "macos")]
-  let win = win.transparent(true);
+  let win = win
+    .transparent(true)
+    .title_bar_style(tauri::TitleBarStyle::Transparent);
 
   let win = win.build().expect("Unable to create window");
 
@@ -210,19 +212,6 @@ fn create_window(app: &AppHandle) -> Window {
     use cocoa::appkit::NSWindow;
     let nsw = win.ns_window().unwrap() as cocoa::base::id;
     unsafe {
-      // manual implementation for now (PR https://github.com/tauri-apps/tauri/pull/3965)
-      {
-        nsw.setTitlebarAppearsTransparent_(cocoa::base::YES);
-
-        // tauri enables fullsizecontentview by default, so disable it
-        let mut style_mask = nsw.styleMask();
-        style_mask.set(
-          cocoa::appkit::NSWindowStyleMask::NSFullSizeContentViewWindowMask,
-          false,
-        );
-        nsw.setStyleMask_(style_mask);
-      }
-
       nsw.setTitleVisibility_(cocoa::appkit::NSWindowTitleVisibility::NSWindowTitleHidden);
 
       // set window to always be dark mode

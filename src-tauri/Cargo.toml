@@ -9,18 +9,18 @@ build = "src/build.rs"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [build-dependencies]
-tauri-build = { version = "1.1", features = [] }
+tauri-build = { version = "1.2", features = [] }
 
 [dependencies]
 serde_json = "1.0"
 serde = { version = "1.0", features = ["derive"] }
 tokio = { version = "1.19", features = ["macros", "time"] }
 chrono = "0.4"
-tauri = { version = "1.1", features = ["devtools", "dialog-message", "macos-private-api", "notification-all", "shell-open", "system-tray", "devtools"] }
+tauri = { version = "1.2", features = ["devtools", "dialog-message", "macos-private-api", "notification-all", "shell-open", "system-tray"] }
 async-cron-scheduler = "1.0"
 tauri-plugin-window-state = "0.1"
 nanoid = "0.4"
-tao = "0.14"
+tao = "0.15"
 once_cell = "1.13"
 atomicwrites = "0.3"
 

@@ -68,6 +68,7 @@
     <div class="mb-2 flex cursor-default justify-center text-xs text-white">
       {#each ['sec', 'min', 'hour', 'day', 'month', 'weekday'] as segment, i}
         {@const selected = selectedSegments.includes(i)}
+        <!-- svelte-ignore a11y-click-events-have-key-events -->
         <div
           class="px-1 hover:opacity-100"
           class:opacity-60={!selected}

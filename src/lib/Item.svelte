@@ -37,11 +37,13 @@
     editGroup = JSON.parse(JSON.stringify(group))
     isEditing = true
   }
-  async function cancel() {
-    editGroup = JSON.parse(JSON.stringify(group))
-    isEditing = false
-    await tick()
-    card.focus()
+  export async function cancel() {
+    if (isEditing) {
+      editGroup = JSON.parse(JSON.stringify(group))
+      isEditing = false
+      await tick()
+      card.focus()
+    }
   }
   async function saveEdits() {
     group.title = editGroup.title
@@ -54,11 +56,12 @@
   }
 
   async function keydown(e: KeyboardEvent) {
-    if (checkShortcut(e, 'Escape')) {
+    if (checkShortcut(e, 'Escape') && isEditing) {
       e.preventDefault()
       cancel()
       await tick()
       card.focus()
+      e.stopPropagation()
     }
   }
   function keydownSelf(e: KeyboardEvent) {
@@ -80,6 +83,7 @@
   }}
 />
 
+<!-- svelte-ignore a11y-no-noninteractive-tabindex -->
 <div
   bind:this={card}
   class="group mb-3 flex w-full cursor-default items-center rounded-lg p-3.5 text-left shadow-xl outline-none transition-colors duration-150 ease-out focus:bg-[#133134] active:bg-[#133134]"
@@ -160,6 +164,7 @@
       <Edit bind:group={editGroup} onCancel={cancel} />
     {/if}
   </form>
+  <!-- svelte-ignore a11y-click-events-have-key-events -->
   <div on:click|preventDefault|stopPropagation>
     <Switch
       class="ml-3.5"

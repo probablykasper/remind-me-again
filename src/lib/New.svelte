@@ -1,11 +1,10 @@
 <script lang="ts">
-  import { onMount, onDestroy } from 'svelte'
+  import { onMount } from 'svelte'
   import { cubicOut } from 'svelte/easing'
   import { slide } from 'svelte/transition'
   import Edit from './Edit.svelte'
   import type { Group } from './types'
   import { checkShortcut, invisibleCursorFix, runCmd } from './helpers'
-  import { event } from '@tauri-apps/api'
 
   export let onCreate: (newGroups: Group[]) => void
   let editMode = false
@@ -41,7 +40,7 @@
   }
 
   let titleInput: HTMLInputElement
-  function newReminder() {
+  export function open() {
     editMode = true
     titleInput.focus()
   }
@@ -49,32 +48,23 @@
     editMode = false
     group = newBlank()
   }
-
-  const unlistenFuture = event.listen('tauri://menu', ({ payload }) => {
-    if (payload === 'New Reminder') {
-      newReminder()
-    }
-  })
-  onDestroy(async () => {
-    const unlisten = await unlistenFuture
-    unlisten()
-  })
 </script>
 
 <form
   class="mb-3 flex w-full flex-col rounded bg-white bg-opacity-10"
   class:p-3.5={editMode}
   on:keydown={(e) => {
-    if (checkShortcut(e, 'Escape')) {
+    if (checkShortcut(e, 'Escape') && editMode) {
       cancel()
       e.preventDefault()
+      e.stopPropagation()
     }
   }}
   on:submit|preventDefault={() => {
     if (editMode) {
       create(group)
     } else {
-      newReminder()
+      open()
     }
   }}
 >

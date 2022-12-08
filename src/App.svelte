@@ -7,10 +7,10 @@
   import New from './lib/New.svelte'
   import { checkShortcut, runCmd } from './lib/helpers'
   import type { Group } from './lib/types'
-  import { onDestroy, SvelteComponent } from 'svelte'
-  import { event } from '@tauri-apps/api'
+  import { onDestroy } from 'svelte'
+  import { event, window as tauriWindow } from '@tauri-apps/api'
 
-  let groupElements: SvelteComponent[] = []
+  let groupElements: Item[] = []
   let focusedGroup: number | null = null
 
   let groups: Group[] = []
@@ -35,18 +35,31 @@
     },
   })
 
+  let creatorComponent: New
   const unlistenFuture = event.listen('tauri://menu', ({ payload }) => {
     console.log(payload, focusedGroup)
     if (payload === 'Edit Reminder' && focusedGroup !== null) {
       console.log('--w', groupElements[focusedGroup])
       groupElements[focusedGroup]?.edit()
+    } else if (payload === 'New Reminder') {
+      if (focusedGroup) {
+        groupElements[focusedGroup].cancel()
+      }
+      creatorComponent.open()
     }
   })
   onDestroy(async () => {
-    const unlisten = await unlistenFuture
-    unlisten()
+    ;(await unlistenFuture)()
   })
 </script>
+
+<svelte:body
+  on:keydown={async (e) => {
+    if (checkShortcut(e, 'Escape')) {
+      tauriWindow.appWindow.hide()
+    }
+  }}
+/>
 
 <div class="flex min-h-screen w-full flex-col overflow-y-scroll px-4 pb-2">
   <h1 class="mb-2 cursor-default select-none text-center text-2xl font-normal text-white">
@@ -55,6 +68,7 @@
   {#if groups}
     <div class="relative select-none outline-none">
       <New
+        bind:this={creatorComponent}
         onCreate={(newGroups) => {
           groups = newGroups
         }}

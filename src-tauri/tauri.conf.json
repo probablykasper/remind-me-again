@@ -58,6 +58,9 @@
       },
       "shell": {
         "open": true
+      },
+      "window": {
+        "hide": true
       }
     },
     "security": {

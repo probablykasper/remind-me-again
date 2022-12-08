@@ -143,29 +143,27 @@ fn main() {
     .on_system_tray_event(|app, event| match event {
       SystemTrayEvent::LeftClick { .. } => {
         let window = match app.get_window("main") {
-          Some(window) => match window.is_visible().expect("winvis") {
-            true => {
-              // hide the window instead of closing due to processes not closing memory leak: https://github.com/tauri-apps/wry/issues/590
-              window.hide().expect("winhide");
-              // window.close().expect("winclose");
-              set_is_accessory_policy(true);
-              return;
-            }
-            false => window,
-          },
+          Some(window) => window,
           None => create_window(&app.app_handle()),
         };
-        set_is_accessory_policy(false);
-        std::thread::sleep(std::time::Duration::from_millis(5));
-        #[cfg(target_os = "windows")]
-        {
-          window.unminimize().expect("unminimize window");
+        match window.is_visible().expect("Window visible?") {
+          true => {
+            // hide the window instead of closing due to processes not closing memory leak: https://github.com/tauri-apps/wry/issues/590
+            window.hide().expect("Hide window");
+            // window.close().expect("winclose");
+            set_is_accessory_policy(true);
+          }
+          false => {
+            set_is_accessory_policy(false);
+            std::thread::sleep(std::time::Duration::from_millis(5));
+            #[cfg(not(target_os = "macos"))]
+            {
+              window.show().expect("Show window");
+            }
+            window.unminimize().expect("Unminimize window");
+            window.set_focus().expect("Focus window");
+          }
         }
-        #[cfg(not(target_os = "macos"))]
-        {
-          window.show().expect("show window");
-        }
-        window.set_focus().unwrap();
       }
       _ => {}
     })

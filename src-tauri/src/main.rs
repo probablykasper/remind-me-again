@@ -203,6 +203,8 @@ fn create_window(app: &AppHandle) -> Window {
   #[cfg(target_os = "macos")]
   let win = win
     .transparent(true)
+    .theme(Some(tauri::Theme::Dark))
+    .hidden_title(true)
     .title_bar_style(tauri::TitleBarStyle::Transparent);
 
   let win = win.build().expect("Unable to create window");
@@ -212,17 +214,6 @@ fn create_window(app: &AppHandle) -> Window {
     use cocoa::appkit::NSWindow;
     let nsw = win.ns_window().unwrap() as cocoa::base::id;
     unsafe {
-      nsw.setTitleVisibility_(cocoa::appkit::NSWindowTitleVisibility::NSWindowTitleHidden);
-
-      // set window to always be dark mode
-      use cocoa::appkit::NSAppearanceNameVibrantDark;
-      use objc::*;
-      let appearance: cocoa::base::id = msg_send![
-        class!(NSAppearance),
-        appearanceNamed: NSAppearanceNameVibrantDark
-      ];
-      let () = msg_send![nsw, setAppearance: appearance];
-
       // set window background color
       let bg_color = cocoa::appkit::NSColor::colorWithRed_green_blue_alpha_(
         cocoa::base::nil,

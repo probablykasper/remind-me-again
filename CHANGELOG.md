@@ -2,6 +2,7 @@
 
 ## Next
 - Add `Escape` shortcut for closing the window
+- Fix cron segment highlighting
 
 ## 1.0.2 - 2022 Nov 4
 - Fix tray icon button (and maybe Linux)

@@ -18,15 +18,20 @@
         return
       }
       const segmentMatches = [...group.cron.matchAll(/\S+/g)]
+      const start = cronInput.selectionStart
+      const end = cronInput.selectionEnd
+      if (start === null || end === null) {
+        return
+      }
+
       let i = 0
       for (const segmentMatch of segmentMatches) {
-        const segment = segmentMatch.index
-        const start = cronInput.selectionStart
-        const end = cronInput.selectionEnd
-        if (segment === undefined || start === null || end === null) {
+        const segmentStart = segmentMatch.index
+        if (segmentStart === undefined) {
           continue
         }
-        if (segment >= start - 1 && segment <= end) {
+        const segmentEnd = segmentStart + segmentMatch[0].length
+        if (start <= segmentEnd && end >= segmentStart) {
           selectedSegments.push(i)
         }
         i++

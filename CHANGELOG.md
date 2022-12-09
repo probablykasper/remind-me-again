@@ -1,8 +1,9 @@
 # Changelog
 
-## Next
+## 1.1.0 - 2022 Dec 9
 - Add `Escape` shortcut for closing the window
 - Fix cron segment highlighting
+- Fix window not revealing when minimized
 
 ## 1.0.2 - 2022 Nov 4
 - Fix tray icon button (and maybe Linux)

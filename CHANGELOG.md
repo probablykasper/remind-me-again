@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.1.1 - 2022 Dec 10
+- Update dependencies
+
 ## 1.1.0 - 2022 Dec 9
 - Add `Escape` shortcut for closing the window
 - Fix cron segment highlighting

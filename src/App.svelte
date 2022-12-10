@@ -57,6 +57,7 @@
   on:keydown={async (e) => {
     if (checkShortcut(e, 'Escape')) {
       tauriWindow.appWindow.hide()
+      e.preventDefault()
     }
   }}
 />

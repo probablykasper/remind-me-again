@@ -142,7 +142,6 @@
             class="block w-full resize-none border-none bg-transparent px-2 py-1 text-xs text-white text-opacity-75 focus:ring-0"
             tabindex={isEditing ? 0 : -1}
             placeholder={isEditing ? 'Description' : ''}
-            type="text"
             bind:value={editGroup.description}
             on:input={onInput}
             on:keydown={(e) => {

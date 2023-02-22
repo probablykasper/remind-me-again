@@ -93,7 +93,6 @@
       class:bg-opacity-10={editMode}
       placeholder="Description"
       tabindex={editMode ? 0 : -1}
-      type="text"
       bind:value={group.description}
       on:input={onInput}
       transition:slide={{ easing: cubicOut }}

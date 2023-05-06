@@ -1,8 +1,6 @@
 .DS_Store
 node_modules
-build
-
-src-tauri/target
-src-tauri/WixTools
-src-tauri/appdata
-src-tauri/appdata
+/dist
+/src-tauri/target
+/src-tauri/WixTools
+/src-tauri/appdata

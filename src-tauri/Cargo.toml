@@ -26,7 +26,8 @@ atomicwrites = "0.4"
 macos-app-nap = "0.0"
 cocoa = "0.24"
 objc = "0.2"
-mac-notification-sys = "0.5"
+# mac-notification-sys = "0.5"
+mac-notification-sys = { git = "https://github.com/probablykasper/mac-notification-sys", rev = "43a2fbf9c4ef8717f7736a99c456e21725ab274d" }
 
 [features]
 default = [ "custom-protocol" ]

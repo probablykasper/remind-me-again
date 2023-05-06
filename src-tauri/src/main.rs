@@ -49,12 +49,12 @@ fn main() {
       data::RemindersFile { groups: Vec::new() }
     }
   };
-  let instance = Instance {
-    file: reminders_file,
+
+  let instance = Instance::init(
+    reminders_file,
     app_paths,
-    scheduler: None,
-    bundle_identifier: ctx.config().tauri.bundle.identifier.clone(),
-  };
+    &ctx.config().tauri.bundle.identifier,
+  );
 
   let app = tauri::Builder::default()
     .invoke_handler(tauri::generate_handler![

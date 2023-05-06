@@ -8,7 +8,6 @@ use serde_json::Value;
 use std::str::FromStr;
 use std::sync::Mutex;
 use tauri::api::dialog;
-use tauri::api::notification::Notification;
 use tauri::{command, State};
 
 #[derive(Serialize, Deserialize)]
@@ -26,6 +25,9 @@ pub fn parse_cron(s: &str) -> Result<cron::Schedule, String> {
   }
 }
 
+#[cfg(not(target_os = "macos"))]
+static mut APP_IDENTIFIER: Option<String> = Option::None;
+
 #[derive(Serialize, Deserialize, Clone)]
 pub struct Group {
   pub title: String,
@@ -37,15 +39,27 @@ pub struct Group {
   pub cron: String,
 }
 impl Group {
-  pub fn create_job(&mut self, cron: cron::Schedule, scheduler: &mut Scheduler<Local>, a: String) {
+  pub fn create_job(&mut self, cron: cron::Schedule, scheduler: &mut Scheduler<Local>) {
     if self.enabled {
       let job = Job::cron_schedule(cron);
       let group = self.clone();
       let job_id = scheduler.insert(job, move |_id| {
-        let result = Notification::new(&a)
-          .title(&group.title)
-          .body(&group.description)
-          .show();
+        #[cfg(target_os = "macos")]
+        let result = mac_notification_sys::send_notification(
+          &group.title,
+          None,
+          &group.description,
+          Some(mac_notification_sys::Notification::new().close_button("Done")),
+        );
+
+        #[cfg(not(target_os = "macos"))]
+        let result = unsafe {
+          tauri::api::notification::Notification::new(APP_IDENTIFIER.as_ref().unwrap())
+            .title(&group.title)
+            .body(&group.description)
+            .show()
+        };
+
         match result {
           Ok(_) => println!("Show \"{}\"", group.title),
           Err(e) => eprintln!("Could not show notification: {}", e),
@@ -58,12 +72,24 @@ impl Group {
 }
 
 pub struct Instance {
-  pub file: RemindersFile,
-  pub scheduler: Option<Scheduler<Local>>,
-  pub app_paths: AppPaths,
-  pub bundle_identifier: String,
+  file: RemindersFile,
+  scheduler: Option<Scheduler<Local>>,
+  app_paths: AppPaths,
 }
 impl Instance {
+  pub fn init(file: RemindersFile, app_paths: AppPaths, app_identifier: &str) -> Self {
+    #[cfg(target_os = "macos")]
+    mac_notification_sys::set_application(&app_identifier).unwrap();
+    #[cfg(not(target_os = "macos"))]
+    unsafe {
+      APP_IDENTIFIER = Some(app_identifier.to_string());
+    }
+    Self {
+      file,
+      scheduler: None,
+      app_paths,
+    }
+  }
   pub fn save(&self) -> Result<(), String> {
     self.file.save(&self.app_paths)
   }
@@ -71,7 +97,7 @@ impl Instance {
     match &mut self.scheduler {
       Some(scheduler) => {
         let schedule = parse_cron(&group.cron)?;
-        group.create_job(schedule, scheduler, self.bundle_identifier.clone());
+        group.create_job(schedule, scheduler);
         self.file.groups.push(group);
       }
       None => {
@@ -115,7 +141,7 @@ impl Instance {
       Some(scheduler) => scheduler,
       None => return Ok(()),
     };
-    new_group.create_job(schedule, scheduler, self.bundle_identifier.clone());
+    new_group.create_job(schedule, scheduler);
     Ok(())
   }
   pub fn update_job(&mut self, job_id: JobId, new_group: &mut Group) -> Result<(), String> {
@@ -125,19 +151,17 @@ impl Instance {
       None => return Ok(()),
     };
     scheduler.remove(job_id);
-    new_group.create_job(schedule, scheduler, self.bundle_identifier.clone());
+    new_group.create_job(schedule, scheduler);
     println!("Update job \"{}\" at {}", new_group.title, new_group.cron);
     Ok(())
   }
   pub fn start(&mut self) {
-    let bundle_identifier = self.bundle_identifier.clone();
-
     let (mut scheduler, sched_service) = Scheduler::<Local>::launch(tokio::time::sleep);
 
     let mut errors = Vec::new();
     for group in &mut self.file.groups {
       match parse_cron(&group.cron) {
-        Ok(schedule) => group.create_job(schedule, &mut scheduler, bundle_identifier.clone()),
+        Ok(schedule) => group.create_job(schedule, &mut scheduler),
         Err(e) => errors.push(e),
       };
     }

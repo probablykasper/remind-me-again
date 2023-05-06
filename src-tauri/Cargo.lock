@@ -1796,6 +1796,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "mac-notification-sys"
+version = "0.5.6"
+source = "git+https://github.com/probablykasper/mac-notification-sys?rev=43a2fbf9c4ef8717f7736a99c456e21725ab274d#43a2fbf9c4ef8717f7736a99c456e21725ab274d"
+dependencies = [
+ "cc",
+ "dirs-next",
+ "objc-foundation",
+ "objc_id",
+ "time 0.3.15",
+]
+
+[[package]]
 name = "macos-app-nap"
 version = "0.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1972,7 +1984,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2bfa211d18e360f08e36c364308f394b5eb23a6629150690e109a916dc6f610e"
 dependencies = [
  "log",
- "mac-notification-sys",
+ "mac-notification-sys 0.5.6 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde",
  "tauri-winrt-notification",
  "zbus",
@@ -2621,7 +2633,7 @@ dependencies = [
  "atomicwrites",
  "chrono",
  "cocoa",
- "mac-notification-sys",
+ "mac-notification-sys 0.5.6 (git+https://github.com/probablykasper/mac-notification-sys?rev=43a2fbf9c4ef8717f7736a99c456e21725ab274d)",
  "macos-app-nap",
  "nanoid",
  "objc",

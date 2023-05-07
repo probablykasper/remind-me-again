@@ -13,6 +13,7 @@ use tauri::{
   command, AppHandle, CustomMenuItem, Manager, Menu, MenuEntry, MenuItem, State, Submenu,
   SystemTray, SystemTrayEvent, Window, WindowBuilder, WindowUrl,
 };
+use tauri_plugin_window_state::StateFlags;
 
 #[macro_export]
 macro_rules! throw {
@@ -106,8 +107,14 @@ fn main() {
       notifications::delete_group,
     ])
     .manage(Data(Mutex::new(instance)))
-    .plugin(tauri_plugin_window_state::Builder::default().build())
+    .plugin(
+      tauri_plugin_window_state::Builder::default()
+        .with_state_flags(StateFlags::SIZE & StateFlags::POSITION)
+        .build(),
+    )
     .setup(|app| {
+      #[cfg(target_os = "macos")]
+      app.set_activation_policy(tauri::ActivationPolicy::Accessory);
       let win = create_window(&app.app_handle());
       match error_msg {
         Some(error_msg) => error_popup(error_msg, win),
@@ -254,7 +261,7 @@ fn create_window(app: &AppHandle) -> Window {
     .title("Remind Me Again")
     .inner_size(400.0, 550.0)
     .min_inner_size(400.0, 200.0)
-    .visible(false) // tauri_plugin_window_state reveals window
+    .visible(false)
     .skip_taskbar(true);
 
   #[cfg(target_os = "macos")]

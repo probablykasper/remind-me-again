@@ -1,6 +1,7 @@
 # Changelog
 
 ## Next
+- Start minimized
 - Show only `Done` button on macOS
 - Request notifications permission on startup
 - Show notification style setting recommendation

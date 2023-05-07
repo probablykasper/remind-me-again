@@ -6,7 +6,7 @@
   import Item from './lib/Item.svelte'
   import New from './lib/New.svelte'
   import { checkShortcut } from './lib/helpers'
-  import type { Group } from '../../bindings'
+  import type { Group } from '../bindings'
   import { onDestroy } from 'svelte'
   import { event, os } from '@tauri-apps/api'
   import commands from './lib/commands'

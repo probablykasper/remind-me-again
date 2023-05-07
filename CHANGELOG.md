@@ -2,6 +2,7 @@
 
 ## Next
 - Fix notifications permission request
+- Add code signing
 
 ## 1.2.0 - 2023 May 7
 - Start minimized

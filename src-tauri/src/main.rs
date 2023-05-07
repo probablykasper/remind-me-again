@@ -142,27 +142,14 @@ fn main() {
     .system_tray(SystemTray::new())
     .on_system_tray_event(|app, event| match event {
       SystemTrayEvent::LeftClick { .. } => {
-        let window = match app.get_window("main") {
-          Some(window) => window,
-          None => create_window(&app.app_handle()),
-        };
-        match window.is_visible().expect("Window visible?") {
-          true => {
-            // hide the window instead of closing due to processes not closing memory leak: https://github.com/tauri-apps/wry/issues/590
-            window.hide().expect("Hide window");
-            // window.close().expect("winclose");
-            set_is_accessory_policy(true);
-          }
-          false => {
-            set_is_accessory_policy(false);
-            std::thread::sleep(std::time::Duration::from_millis(5));
-            #[cfg(not(target_os = "macos"))]
-            {
-              window.show().expect("Show window");
-            }
-            window.unminimize().expect("Unminimize window");
-            window.set_focus().expect("Focus window");
-          }
+        let is_visible = app
+          .get_window("main")
+          .map(|w| w.is_visible().unwrap())
+          .unwrap_or(false);
+        if is_visible {
+          hide(&app.app_handle());
+        } else {
+          show(&app.app_handle());
         }
       }
       _ => {}
@@ -182,16 +169,42 @@ fn main() {
     tauri::RunEvent::WindowEvent { event, .. } => match event {
       tauri::WindowEvent::CloseRequested { api, .. } => {
         api.prevent_close();
-        let window = app_handle.get_window("main").expect("getwin");
-        // hide the window instead of closing due to processes not closing memory leak: https://github.com/tauri-apps/wry/issues/590
-        window.hide().expect("winhide");
-        // window.close().expect("winclose");
-        set_is_accessory_policy(true);
+        hide(app_handle);
       }
       _ => {}
     },
     _ => {}
   });
+}
+
+// Considerations for hide/show handling:
+// - window.lose() causes memory leak: https://github.com/tauri-apps/wry/issues/590
+// - Due to the accessory activation policy being enabled when the window hides, the underlying app's windows all get focusd. But the accessory policy is needed to control the dock.
+
+fn show(app: &AppHandle) {
+  let window = match app.get_window("main") {
+    Some(window) => window,
+    None => create_window(&app.app_handle()),
+  };
+  #[cfg(target_os = "macos")]
+  app.show().unwrap();
+  window.show().unwrap();
+  window.unminimize().unwrap();
+  window.set_focus().unwrap();
+  #[cfg(target_os = "macos")]
+  {
+    set_is_accessory_policy(false);
+  }
+}
+fn hide(app: &AppHandle) {
+  let window = app.get_window("main").unwrap();
+  window.unminimize().unwrap();
+  window.hide().unwrap();
+  #[cfg(target_os = "macos")]
+  {
+    app.hide().unwrap();
+    set_is_accessory_policy(true);
+  }
 }
 
 fn create_window(app: &AppHandle) -> Window {
@@ -231,24 +244,21 @@ fn create_window(app: &AppHandle) -> Window {
   win
 }
 
-#[allow(unused_variables)]
+#[cfg(target_os = "macos")]
 fn set_is_accessory_policy(accessory: bool) {
-  #[cfg(target_os = "macos")]
-  {
-    use cocoa::appkit::NSApplication;
-    use cocoa::appkit::NSApplicationActivationPolicy::{
-      NSApplicationActivationPolicyAccessory, NSApplicationActivationPolicyRegular,
-    };
-    use objc::*;
+  use cocoa::appkit::NSApplication;
+  use cocoa::appkit::NSApplicationActivationPolicy::{
+    NSApplicationActivationPolicyAccessory, NSApplicationActivationPolicyRegular,
+  };
+  use objc::*;
 
-    let cls = objc::runtime::Class::get("NSApplication").unwrap();
-    let app: cocoa::base::id = unsafe { msg_send![cls, sharedApplication] };
-    unsafe {
-      if accessory {
-        app.setActivationPolicy_(NSApplicationActivationPolicyAccessory);
-      } else {
-        app.setActivationPolicy_(NSApplicationActivationPolicyRegular);
-      }
+  let cls = objc::runtime::Class::get("NSApplication").unwrap();
+  let app: cocoa::base::id = unsafe { msg_send![cls, sharedApplication] };
+  unsafe {
+    if accessory {
+      app.setActivationPolicy_(NSApplicationActivationPolicyAccessory);
+    } else {
+      app.setActivationPolicy_(NSApplicationActivationPolicyRegular);
     }
   }
 }

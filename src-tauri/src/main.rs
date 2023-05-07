@@ -81,6 +81,7 @@ fn main() {
   let app = tauri::Builder::default()
     .invoke_handler(tauri::generate_handler![
       error_popup,
+      hide,
       notifications::new_group,
       notifications::get_groups,
       notifications::update_group,
@@ -169,7 +170,7 @@ fn main() {
           .map(|w| w.is_visible().unwrap())
           .unwrap_or(false);
         if is_visible {
-          hide(&app.app_handle());
+          hide(app.app_handle());
         } else {
           show(&app.app_handle());
         }
@@ -191,7 +192,7 @@ fn main() {
     tauri::RunEvent::WindowEvent { event, .. } => match event {
       tauri::WindowEvent::CloseRequested { api, .. } => {
         api.prevent_close();
-        hide(app_handle);
+        hide(app_handle.app_handle());
       }
       _ => {}
     },
@@ -209,16 +210,16 @@ fn show(app: &AppHandle) {
     None => create_window(&app.app_handle()),
   };
   #[cfg(target_os = "macos")]
-  app.show().unwrap();
+  {
+    app.show().unwrap();
+    set_is_accessory_policy(false);
+  }
   window.show().unwrap();
   window.unminimize().unwrap();
   window.set_focus().unwrap();
-  #[cfg(target_os = "macos")]
-  {
-    set_is_accessory_policy(false);
-  }
 }
-fn hide(app: &AppHandle) {
+#[command]
+fn hide(app: AppHandle) {
   let window = app.get_window("main").unwrap();
   window.unminimize().unwrap();
   window.hide().unwrap();

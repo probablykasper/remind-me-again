@@ -5,6 +5,7 @@
 - Request notifications permission on startup
 - Show notification style setting recommendation
 - Fix title/description update resetting when clicking the text fields
+- Fix `Escape` shortcut not hiding the window properly
 
 ## 1.1.1 - 2022 Dec 10
 - Update dependencies

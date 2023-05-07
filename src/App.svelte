@@ -8,7 +8,8 @@
   import { checkShortcut, runCmd } from './lib/helpers'
   import type { Group } from './lib/types'
   import { onDestroy } from 'svelte'
-  import { event, window as tauriWindow, os } from '@tauri-apps/api'
+  import { event, os } from '@tauri-apps/api'
+  import { invoke } from '@tauri-apps/api/tauri'
 
   let groupElements: Item[] = []
   let focusedGroup: number | null = null
@@ -57,7 +58,7 @@
 <svelte:body
   on:keydown={async (e) => {
     if (checkShortcut(e, 'Escape')) {
-      tauriWindow.appWindow.hide()
+      invoke('hide')
       e.preventDefault()
     }
   }}

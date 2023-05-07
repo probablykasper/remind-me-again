@@ -1,6 +1,6 @@
 <script lang="ts">
   import { onMount, tick } from 'svelte'
-  import type { Group } from './types'
+  import type { Group } from '../../bindings'
   import Switch from './Switch.svelte'
   import { checkShortcut, getCronText, invisibleCursorFix } from './helpers'
   import Edit from './Edit.svelte'

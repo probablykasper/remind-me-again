@@ -5,17 +5,17 @@
   import './app.css'
   import Item from './lib/Item.svelte'
   import New from './lib/New.svelte'
-  import { checkShortcut, runCmd } from './lib/helpers'
-  import type { Group } from './lib/types'
+  import { checkShortcut } from './lib/helpers'
+  import type { Group } from '../../bindings'
   import { onDestroy } from 'svelte'
   import { event, os } from '@tauri-apps/api'
-  import { invoke } from '@tauri-apps/api/tauri'
+  import commands from './lib/commands'
 
   let groupElements: Item[] = []
   let focusedGroup: number | null = null
 
   let groups: Group[] = []
-  runCmd<Group[]>('get_groups').then((g) => {
+  commands.getGroups().then((g) => {
     groups = g
     console.log(groups)
   })
@@ -58,7 +58,7 @@
 <svelte:body
   on:keydown={async (e) => {
     if (checkShortcut(e, 'Escape')) {
-      invoke('hide')
+      commands.hide()
       e.preventDefault()
     }
   }}
@@ -100,10 +100,10 @@
           bind:this={groupElements[i]}
           bind:group
           onUpdate={async () => {
-            groups = await runCmd('update_group', { group })
+            groups = await commands.updateGroup(group)
           }}
           onDelete={async () => {
-            groups = await runCmd('delete_group', { index: i })
+            groups = await commands.deleteGroup(i)
           }}
         />
       </div>

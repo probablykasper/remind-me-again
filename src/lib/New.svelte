@@ -3,8 +3,9 @@
   import { cubicOut } from 'svelte/easing'
   import { slide } from 'svelte/transition'
   import Edit from './Edit.svelte'
-  import type { Group } from './types'
-  import { checkShortcut, invisibleCursorFix, runCmd } from './helpers'
+  import { checkShortcut, invisibleCursorFix } from './helpers'
+  import commands from './commands'
+  import type { Group } from '../../bindings'
 
   export let onCreate: (newGroups: Group[]) => void
   let editMode = false
@@ -22,7 +23,7 @@
   }
 
   async function create(newGroup: Group) {
-    const newGroups: Group[] = await runCmd('new_group', { group: newGroup })
+    const newGroups: Group[] = await commands.newGroup(newGroup)
     editMode = false
     onCreate(newGroups)
     group = newBlank()

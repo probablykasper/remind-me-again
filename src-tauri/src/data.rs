@@ -1,7 +1,6 @@
 use crate::notifications::Group;
 use atomicwrites::{AtomicFile, OverwriteBehavior};
 use serde::{Deserialize, Serialize};
-use serde_json::Value;
 use std::env;
 use std::io::Write;
 use std::path::PathBuf;
@@ -22,13 +21,6 @@ impl AppPaths {
       app_dir: app_dir.clone(),
       reminders_file: app_dir.join("Settings.json"),
     }
-  }
-}
-
-pub fn to_json<T: Serialize>(data: &T) -> Result<Value, String> {
-  match serde_json::to_value(data) {
-    Ok(v) => Ok(v),
-    Err(e) => throw!("Error serializing {}", e),
   }
 }
 

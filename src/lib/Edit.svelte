@@ -1,7 +1,7 @@
 <script lang="ts">
   import { slide, fly } from 'svelte/transition'
   import { getCronText, invisibleCursorFix } from './helpers'
-  import type { Group } from './types'
+  import type { Group } from '../../bindings'
 
   export let group: Group
 

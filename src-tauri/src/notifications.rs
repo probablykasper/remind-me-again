@@ -1,10 +1,10 @@
-use crate::data::{to_json, AppPaths, RemindersFile};
+use crate::data::{AppPaths, RemindersFile};
 use async_cron_scheduler::cron;
 use async_cron_scheduler::{Job, JobId, Scheduler};
 use chrono::offset::Local;
 use nanoid::nanoid;
 use serde::{Deserialize, Serialize};
-use serde_json::Value;
+use specta::Type;
 use std::str::FromStr;
 use std::sync::Mutex;
 use tauri::api::dialog;
@@ -28,13 +28,14 @@ pub fn parse_cron(s: &str) -> Result<cron::Schedule, String> {
 #[cfg(not(target_os = "macos"))]
 static mut APP_IDENTIFIER: Option<String> = Option::None;
 
-#[derive(Serialize, Deserialize, Clone)]
+#[derive(Serialize, Deserialize, Clone, Type)]
 pub struct Group {
   pub title: String,
   pub description: String,
   pub enabled: bool,
   pub id: String,
   #[serde(skip)]
+  #[specta(type = null)]
   pub job_id: Option<JobId>,
   pub cron: String,
 }
@@ -180,22 +181,27 @@ impl Instance {
 pub struct Data(pub Mutex<Instance>);
 
 #[command]
-pub async fn new_group(mut group: Group, data: State<'_, Data>) -> Result<Value, String> {
+#[specta::specta]
+pub async fn new_group(group: Group, data: State<'_, Data>) -> Result<Vec<Group>, String> {
   let mut data = data.0.lock().unwrap();
+  let mut group = group;
   group.id = data.generate_id();
   data.add_group(group)?;
   data.save()?;
-  to_json(&data.file.groups)
+  Ok(data.file.groups.clone())
 }
 
 #[command]
-pub async fn get_groups(data: State<'_, Data>) -> Result<Value, String> {
+#[specta::specta]
+pub async fn get_groups(data: State<'_, Data>) -> Result<Vec<Group>, String> {
   let data = data.0.lock().unwrap();
-  to_json(&data.file.groups)
+  Ok(data.file.groups.clone())
 }
 
 #[command]
-pub async fn update_group(mut group: Group, data: State<'_, Data>) -> Result<Value, String> {
+#[specta::specta]
+pub async fn update_group(group: Group, data: State<'_, Data>) -> Result<Vec<Group>, String> {
+  let mut group = group;
   let mut data = data.0.lock().unwrap();
   let i = match data.file.groups.iter().position(|g| g.id == group.id) {
     Some(i) => i,
@@ -207,13 +213,14 @@ pub async fn update_group(mut group: Group, data: State<'_, Data>) -> Result<Val
   }
   data.file.groups[i] = group;
   data.save()?;
-  to_json(&data.file.groups)
+  Ok(data.file.groups.clone())
 }
 
 #[command]
-pub async fn delete_group(index: usize, data: State<'_, Data>) -> Result<Value, String> {
+#[specta::specta]
+pub async fn delete_group(index: u32, data: State<'_, Data>) -> Result<Vec<Group>, String> {
   let mut data = data.0.lock().unwrap();
-  data.delete_group(index);
+  data.delete_group(index.try_into().unwrap());
   data.save()?;
-  to_json(&data.file.groups)
+  Ok(data.file.groups.clone())
 }

@@ -22,6 +22,7 @@ macro_rules! throw {
 }
 
 #[command]
+#[specta::specta]
 fn error_popup(msg: String, win: Window) {
   eprintln!("Error: {}", msg);
   thread::spawn(move || {
@@ -77,6 +78,23 @@ fn main() {
     app_paths,
     &ctx.config().tauri.bundle.identifier,
   );
+
+  #[cfg(debug_assertions)]
+  {
+    tauri_specta::ts::export(
+      specta::collect_types![
+        error_popup,
+        hide,
+        notifications::new_group,
+        notifications::get_groups,
+        notifications::update_group,
+        notifications::delete_group,
+      ],
+      "../bindings.ts",
+    )
+    .unwrap();
+    println!("Generated TS types");
+  }
 
   let app = tauri::Builder::default()
     .invoke_handler(tauri::generate_handler![
@@ -219,6 +237,7 @@ fn show(app: &AppHandle) {
   window.set_focus().unwrap();
 }
 #[command]
+#[specta::specta]
 fn hide(app: AppHandle) {
   let window = app.get_window("main").unwrap();
   window.unminimize().unwrap();

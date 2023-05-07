@@ -50,6 +50,28 @@ fn main() {
     }
   };
 
+  if !cfg!(debug_assertions) {
+    rust_macios::user_notifications::UNUserNotificationCenter::current_notification_center()
+      .request_authorization_with_options_completion_handler(
+        &[
+          rust_macios::user_notifications::UNAuthorizationOptions::Alert,
+          rust_macios::user_notifications::UNAuthorizationOptions::Sound,
+        ],
+        |granted: bool, error: Option<rust_macios::foundation::NSError>| {
+          if !granted {
+            println!("Notifications permission not granted");
+          }
+          if let Some(e) = error {
+            println!(
+              "Notification authorization error: {} {}",
+              e.code(),
+              e.localized_description()
+            );
+          }
+        },
+      );
+  }
+
   let instance = Instance::init(
     reminders_file,
     app_paths,

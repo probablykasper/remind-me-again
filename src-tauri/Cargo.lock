@@ -2442,7 +2442,7 @@ checksum = "a5996294f19bd3aae0453a862ad728f60e6600695733dd5df01da90c54363a3c"
 
 [[package]]
 name = "remind-me-again"
-version = "1.1.1"
+version = "1.2.0"
 dependencies = [
  "async-cron-scheduler",
  "atomicwrites",

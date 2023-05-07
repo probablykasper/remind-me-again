@@ -59,6 +59,9 @@
       "shell": {
         "open": true
       },
+      "os": {
+        "all": true
+      },
       "window": {
         "hide": true
       }

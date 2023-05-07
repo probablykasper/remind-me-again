@@ -1,5 +1,8 @@
 # Changelog
 
+## Next
+- Fix macOS notification style setting recommendation not showing
+
 ## 1.2.1 - 2023 May 7
 - Fix notifications permission request
 - Add code signing
@@ -8,7 +11,7 @@
 - Start minimized
 - Show only `Done` button on macOS
 - Request notifications permission on startup
-- Show notification style setting recommendation
+- Show macOS notification style setting recommendation
 - Fix title/description update resetting when clicking the text fields
 - Fix `Escape` shortcut not hiding the window properly
 

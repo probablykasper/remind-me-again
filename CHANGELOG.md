@@ -1,6 +1,6 @@
 # Changelog
 
-## Next
+## 1.2.2 - 2023 May 7
 - Fix macOS notification style setting recommendation not showing
 
 ## 1.2.1 - 2023 May 7

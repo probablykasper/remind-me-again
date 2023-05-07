@@ -1,6 +1,6 @@
 # Changelog
 
-## Next
+## 1.2.1 - 2023 May 7
 - Fix notifications permission request
 - Add code signing
 

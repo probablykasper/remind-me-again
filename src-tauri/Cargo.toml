@@ -1,6 +1,6 @@
 [package]
 name = "remind-me-again"
-version = "1.2.0"
+version = "1.2.1"
 description = "Toggleable reminders app for Mac, Linux and Windows"
 default-run = "remind-me-again"
 edition = "2021"

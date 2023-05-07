@@ -34,8 +34,10 @@
     titleInput.focus()
   }
   function startEdit() {
-    editGroup = JSON.parse(JSON.stringify(group))
-    isEditing = true
+    if (!isEditing) {
+      editGroup = JSON.parse(JSON.stringify(group))
+      isEditing = true
+    }
   }
   export async function cancel() {
     if (isEditing) {

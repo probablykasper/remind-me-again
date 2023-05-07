@@ -1,5 +1,8 @@
 # Changelog
 
+## Next
+- Fix notifications permission request
+
 ## 1.2.0 - 2023 May 7
 - Start minimized
 - Show only `Done` button on macOS

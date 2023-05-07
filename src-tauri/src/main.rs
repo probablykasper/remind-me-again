@@ -52,7 +52,7 @@ fn main() {
     }
   };
 
-  #[cfg(all(debug_assertions, target_os = "macos"))]
+  #[cfg(all(not(debug_assertions), target_os = "macos"))]
   {
     rust_macios::user_notifications::UNUserNotificationCenter::current_notification_center()
       .request_authorization_with_options_completion_handler(

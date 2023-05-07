@@ -8,7 +8,7 @@
   import { checkShortcut, runCmd } from './lib/helpers'
   import type { Group } from './lib/types'
   import { onDestroy } from 'svelte'
-  import { event, window as tauriWindow } from '@tauri-apps/api'
+  import { event, window as tauriWindow, os } from '@tauri-apps/api'
 
   let groupElements: Item[] = []
   let focusedGroup: number | null = null
@@ -18,6 +18,7 @@
     groups = g
     console.log(groups)
   })
+  let platform = os.platform()
 
   const [send, receive] = crossfade({
     fallback(node) {
@@ -66,49 +67,58 @@
   <h1 class="mb-2 cursor-default select-none text-center text-2xl font-normal text-white">
     Reminders
   </h1>
-  {#if groups}
-    <div class="relative select-none outline-none">
-      <New
-        bind:this={creatorComponent}
-        onCreate={(newGroups) => {
-          groups = newGroups
+  <div class="relative select-none outline-none">
+    <New
+      bind:this={creatorComponent}
+      onCreate={(newGroups) => {
+        groups = newGroups
+      }}
+    />
+    {#each groups as group, i (group.id)}
+      <div
+        in:receive={{ key: group.id, duration: 400 }}
+        out:send={{ key: group.id, duration: 400 }}
+        animate:flip={{ duration: 400 }}
+        on:focusin={() => {
+          focusedGroup = i
         }}
-      />
-      {#each groups as group, i (group.id)}
-        <div
-          in:receive={{ key: group.id, duration: 400 }}
-          out:send={{ key: group.id, duration: 400 }}
-          animate:flip={{ duration: 400 }}
-          on:focusin={() => {
-            focusedGroup = i
+        on:focusout={() => {
+          focusedGroup = null
+        }}
+        on:keydown={async (e) => {
+          if (checkShortcut(e, 'ArrowUp')) {
+            groupElements[i - 1]?.focus()
+            e.preventDefault()
+          } else if (checkShortcut(e, 'ArrowDown')) {
+            groupElements[i + 1]?.focus()
+            e.preventDefault()
+          }
+        }}
+      >
+        <Item
+          bind:this={groupElements[i]}
+          bind:group
+          onUpdate={async () => {
+            groups = await runCmd('update_group', { group })
           }}
-          on:focusout={() => {
-            focusedGroup = null
+          onDelete={async () => {
+            groups = await runCmd('delete_group', { index: i })
           }}
-          on:keydown={async (e) => {
-            if (checkShortcut(e, 'ArrowUp')) {
-              groupElements[i - 1]?.focus()
-              e.preventDefault()
-            } else if (checkShortcut(e, 'ArrowDown')) {
-              groupElements[i + 1]?.focus()
-              e.preventDefault()
-            }
-          }}
-        >
-          <Item
-            bind:this={groupElements[i]}
-            bind:group
-            onUpdate={async () => {
-              groups = await runCmd('update_group', { group })
-            }}
-            onDelete={async () => {
-              groups = await runCmd('delete_group', { index: i })
-            }}
-          />
-        </div>
-      {/each}
-    </div>
-  {/if}
+        />
+      </div>
+    {/each}
+  </div>
+  {#await platform then platform}
+    {#if groups.length === 0 && platform === 'darwin'}
+      <div class="flex flex-grow items-center justify-center">
+        <p class="mx-auto max-w-lg rounded-md bg-[#3b1212] px-3 py-3 text-sm">
+          By default, notifications hide after a few seconds. To change that, open System Settings >
+          Notifications > Remind Me Again, and select the "Alerts" notification style.
+        </p>
+      </div>
+      <div class="max-h-[2.25rem] flex-grow" />
+    {/if}
+  {/await}
 </div>
 
 <style lang="sass">

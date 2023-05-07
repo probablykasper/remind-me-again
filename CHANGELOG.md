@@ -2,6 +2,8 @@
 
 ## Next
 - Show only `Done` button on macOS
+- Request notifications permission on startup
+- Show notification style setting recommendation
 
 ## 1.1.1 - 2022 Dec 10
 - Update dependencies

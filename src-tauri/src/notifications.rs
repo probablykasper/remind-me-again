@@ -182,9 +182,8 @@ pub struct Data(pub Mutex<Instance>);
 
 #[command]
 #[specta::specta]
-pub async fn new_group(group: Group, data: State<'_, Data>) -> Result<Vec<Group>, String> {
+pub async fn new_group(mut group: Group, data: State<'_, Data>) -> Result<Vec<Group>, String> {
   let mut data = data.0.lock().unwrap();
-  let mut group = group;
   group.id = data.generate_id();
   data.add_group(group)?;
   data.save()?;
@@ -200,8 +199,7 @@ pub async fn get_groups(data: State<'_, Data>) -> Result<Vec<Group>, String> {
 
 #[command]
 #[specta::specta]
-pub async fn update_group(group: Group, data: State<'_, Data>) -> Result<Vec<Group>, String> {
-  let mut group = group;
+pub async fn update_group(mut group: Group, data: State<'_, Data>) -> Result<Vec<Group>, String> {
   let mut data = data.0.lock().unwrap();
   let i = match data.file.groups.iter().position(|g| g.id == group.id) {
     Some(i) => i,

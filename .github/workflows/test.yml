@@ -20,15 +20,15 @@ jobs:
       - name: Node.js setup
         uses: actions/setup-node@v3
         with:
-          node-version: 16
+          node-version: 18
 
       - name: Rust setup
         uses: dtolnay/rust-toolchain@stable
 
       - name: Rust Cache
-        uses: Swatinem/rust-cache@v1
+        uses: Swatinem/rust-cache@v2
         with:
-          working-directory: ./src-tauri
+          workspaces: ./src-tauri
 
       - name: Install dependencies (ubuntu only)
         if: matrix.platform == 'ubuntu-latest'
